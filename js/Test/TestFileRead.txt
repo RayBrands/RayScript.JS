@@ -1,0 +1,22 @@
+// main.js
+
+document.getElementById('fileInput').addEventListener('change', handleFile);
+
+function handleFile(event) {
+  const fileInput = event.target;
+  const file = fileInput.files[0];
+
+  if (file && file.name.endsWith('.txt')) {
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      const content = e.target.result;
+      console.log('File content:', content);
+      // Ваш код для обработки содержимого файла .ryc
+    };
+
+    reader.readAsText(file);
+  } else {
+    console.error('Выберите файл с расширением .ryc');
+  }
+}
