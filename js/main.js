@@ -4,20 +4,19 @@
 /*
 
 */
-const variablesDict = {}; // Объект для хранения переменных
+const variablesDict = {}; // Хранение переменных проекта в словаре
 
-//справочник для работы с переменными
+//справочник(-функция) для работы с переменными
+//#TODO: Сделать работу с модулями
 const variables = {
-	setValue: (_name,_value) => variablesDict[_name] = _value;
-
-function setValue(_name, _value) {// Функция для установки значения переменной
-  
-}
-
-// Функция для получения значения переменной
-function getValue(_name) {
-  return variables[_name];
-}
+	setValue: function (_name,_value) { // Функция для установки значения переменной
+		variablesDict[_name] = _value;
+		return _value; 
+	},
+	getValue: function (_name){ // Функция для получения значения переменной
+		return variablesDict[_name] ?? 'default value';;
+	}
+};
 
 //Раскрытие скобок
 /*
@@ -169,7 +168,7 @@ const editTextElement = document.getElementById('editText');
 const submitButton = document.getElementById('submitButton');
 const outputElement = document.getElementById('output');
 
-//При нажатии кнопки "sumbitButton"
+//При нажатии кнопки "submitButton"
 submitButton.addEventListener('click', function() { 
 	const editTextValue = editTextElement.value;
 	// Пример использования
