@@ -14,7 +14,7 @@ const variables = {
 		return _value; 
 	},
 	getValue: function (_name){ // Функция для получения значения переменной
-		return variablesDict[_name] ?? 'default value';;
+		return variablesDict[_name] ?? 'default value';
 	}
 };
 
