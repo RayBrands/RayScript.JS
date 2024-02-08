@@ -32,6 +32,9 @@ function update() {
   ctx.fillStyle = 'blue';
   ctx.fillRect(-squareSize / 2, -squareSize / 2, squareSize, squareSize);
   ctx.restore();
+  
+  
+  
 }
 
 // Функция адаптации canvas к размеру экрана
