@@ -129,7 +129,7 @@ function parser(_text, args) {
 		'not': (a) => (returnReq(!a))
 	};
     
-
+	
     // Если _text - числовое значение, возвращаем его
     if (!isNaN(_text)) {
         return parseFloat(_text);
@@ -242,6 +242,7 @@ submitButton.addEventListener('click', function() {
 	console.log("Значения в скобках:", result.args);
 	console.log("Parser:", parser(result.text,result.args));
 	
+	
 	myFunction(`Текст без скобок: ${result.text}\nЗначения в скобках: ${result.args.join(', ')}`);
 });
 
@@ -253,5 +254,10 @@ function myFunction(text) {
 
 const inputText = "(9)+((1)+(1))";
 const result = openBrackets(inputText);
+variablesDict["var"]=42;
+console.log(variablesDict["var"]);
+const abc = {"a":123};
+abc["b"]=45;
+
 console.log(result);
 console.log("Значения в parser:", parser(result.text,result.args));
