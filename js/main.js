@@ -4,17 +4,17 @@
 /*
 
 */
-const variablesDict = {}; // Хранение переменных проекта в словаре
+const variablesDict = {}; // Хранение переменных проекта в словаре (Почему нет)
 
 //справочник(-функция) для работы с переменными
 //#TODO: Сделать работу с модулями
-const variables = {
+const variables = { 
 	setValue: function (_name,_value) { // Функция для установки значения переменной
 		variablesDict[_name] = _value;
 		return _value; 
 	},
 	getValue: function (_name){ // Функция для получения значения переменной
-		return variablesDict[_name] ?? 'default value';
+		return variablesDict[_name] ?? 0; //Возвращает значение Zero если нету такой переменной
 	}
 };
 
@@ -35,56 +35,117 @@ function openBrackets(text) {
     let roundBracketCount = 0;
     let squareBracketCount = 0;
 
-    for (let char of text) {
-        if (char === '(' && squareBracketCount === 0) {
-            roundBracketCount++;
-            if (roundBracketCount > 1) {
-                currentBracketValue += char;
-            }
-        } else if (char === ')' && squareBracketCount === 0) {
-            roundBracketCount--;
-            if (roundBracketCount > 0) {
-                currentBracketValue += char;
-            } else {
-                result.args.push(currentBracketValue.trim());
-                currentBracketValue = "";
-            }
-        } else if (char === '[' && roundBracketCount === 0) {
-            squareBracketCount++;
-            if (squareBracketCount > 1) {
-                currentBracketValue += char;
-            }
-        } else if (char === ']' && roundBracketCount === 0) {
-            squareBracketCount--;
-            if (squareBracketCount > 0) {
-                currentBracketValue += char;
-            } else {
-                result.args.push(currentBracketValue.trim());
-                currentBracketValue = "";
-            }
-        } else if (roundBracketCount === 0 && squareBracketCount === 0) {
-            result.text += char;
-        } else {
-            currentBracketValue += char;
-        }
-    }
-	
+    try { //Добавлен обработчик ошибок
+		for (let char of text) {
+			if (char === '(' && squareBracketCount === 0) {
+				roundBracketCount++;
+				if (roundBracketCount > 1) {
+					currentBracketValue += char;
+				}
+			} else if (char === ')' && squareBracketCount === 0) {
+				roundBracketCount--;
+				if (roundBracketCount > 0) {
+					currentBracketValue += char;
+				} else {
+					result.args.push(currentBracketValue.trim());
+					currentBracketValue = "";
+				}
+			} else if (char === '[' && roundBracketCount === 0) {
+				squareBracketCount++;
+				if (squareBracketCount > 1) {
+					currentBracketValue += char;
+				}
+			} else if (char === ']' && roundBracketCount === 0) {
+				squareBracketCount--;
+				if (squareBracketCount > 0) {
+					currentBracketValue += char;
+				} else {
+					result.args.push(currentBracketValue.trim());
+					currentBracketValue = "";
+				}
+			} else if (roundBracketCount === 0 && squareBracketCount === 0) {
+				result.text += char;
+			} else {
+				currentBracketValue += char;
+			}
+		}
+	} catch (TypeError){
+		result.text='0'; //Maybe wrong?
+	};
 	if (result.text === "") { //Проверка на то, что всё-таки текст функции есть
         return openBrackets(result.args[0]);
-    }
-	
+    };
 	result.text = result.text.replace(/ /g, "")
     return result;
 }
 
-function parser(_text, args) {
-  const funcDict = {
-    '+': (args) => parseFloat(args[0])+parseFloat(args[1]),
-    '-': (args) => args.reduce((acc, val) => acc - val)
-    // Добавьте другие операторы с их обработчиками
-  };
+function returnReq(req) {return (req)?1:0}; //Нужно для численного значения булевого типа данных
 
-  return funcDict[_text](args);
+const twoArg = { //Операторы с двумя аргументами
+		//math
+        '+': (a,b) => (a+b), // Ваш код для операции сложения
+        '-': (a,b) => (a-b),
+		'*': (a,b) => (a*b),
+		'/': (a,b) => (a/b),
+		'**': (a,b) => (a**b),
+		'pow': (a,b) => (a**b),
+		//req
+		'>': (a,b) => (returnReq(a>b)),
+		'<': (a,b) => (returnReq(a<b)),
+		'==': (a,b) => (returnReq(a==b)),
+		'>=': (a,b) => (returnReq(a>=b)),
+		'<=': (a,b) => (returnReq(a<=b)),
+		'<>': (a,b) => (returnReq(a!=b)),
+		'!=': (a,b) => (returnReq(a!=b)),
+		'><': (a,b) => (returnReq(a!=b)),
+		'and': (a,b) => (returnReq(a&&b)),
+		'or': (a,b) => (returnReq(a||b)),
+		'nand': (a,b) => (returnReq(!(a&&b))),
+		'nor': (a,b) => (returnReq(!(a||b))),
+		'xor': (a,b) => (returnReq(a!==b)),
+		'xnor': (a,b) => (returnReq(a===b)),
+		//str
+		'join': (a,b) => (''+a+b),
+		'contains': (a,b) => (returnReq(a.includes(b))),
+		'identical': (a,b) => (returnReq(a===b)),
+		'to': (a,b) =>{
+			if (b == "uppercase") {
+				return (a.toUpperCase())
+			} else {
+				return (a.toLowerCase())
+			}
+		}
+		//easest
+		
+		
+		
+        // Добавьте другие операторы с их обработчиками
+    };
+
+function parser(_text, args) {
+	var a,b,c=0;
+	const oneArg = {
+		'!': (a) => (returnReq(!a)),
+		'not': (a) => (returnReq(!a))
+	};
+    
+
+    // Если _text - числовое значение, возвращаем его
+    if (!isNaN(_text)) {
+        return parseFloat(_text);
+    } else {
+        // Если _text - оператор, выполняем соответствующую операцию
+        if (oneArg[_text]) {
+			a = parser(openBrackets(args[0]).text,openBrackets(args[0]).args);
+            return oneArg[_text](a);
+        } else if (twoArg[_text]) {
+			a = parser(openBrackets(args[0]).text,openBrackets(args[0]).args);
+			b = parser(openBrackets(args[1]).text,openBrackets(args[1]).args);
+            return twoArg[_text](a,b);
+        } 
+		// Если _text не числовое значение и не оператор, возвращаем его как есть
+		return _text;
+    }
 }
 /*
 const functionDictionary = {
@@ -179,7 +240,7 @@ submitButton.addEventListener('click', function() {
 	const result = openBrackets(editTextElement.value);
 	console.log("Текст без скобок:", result.text);
 	console.log("Значения в скобках:", result.args);
-	console.log("Parser:", )
+	console.log("Parser:", parser(result.text,result.args));
 	
 	myFunction(`Текст без скобок: ${result.text}\nЗначения в скобках: ${result.args.join(', ')}`);
 });
@@ -190,7 +251,7 @@ function myFunction(text) {
     outputElement.innerHTML = 'Received text: ' + text;
 }
 
-const inputText = "(9)+(10)";
+const inputText = "(9)+((1)+(1))";
 const result = openBrackets(inputText);
 console.log(result);
 console.log("Значения в parser:", parser(result.text,result.args));
