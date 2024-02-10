@@ -1,24 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your HTML Page</title>
-	
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Пример с фиксированным размером</title>
 	<style>
 		body {
 		  margin: 0;
 		  overflow: hidden;
+		  background-color: black; /* set background color to black */
 		}
-
-		canvas {
-		  display: block;
+		#adaptiveCanvas {
+		  position: absolute;
+		  transform: translate(0%, 0%);
+		  background-color: white; /* set background color to black */
+		  image-rendering: pixelated;
 		}
 	</style>
-	
 </head>
 <body>
-
+	
 	<!--Тест работы интерпритатора--> 
 	<!--<script src="js/main.js"></script>
 	<input type="text" id="editText" placeholder="Enter text">

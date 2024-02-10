@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        #canvas-container {
+		  position: absolute;
+		  top: 0;
+		  left: 0;
+		  width: 100vw;
+		  height: 100vh;
+		  overflow: hidden;
+		}
+
+		#canvas {
+		  width: 100%;
+		  height: 100%;
+		  image-rendering: pixelated;
+		  margin: 0 auto;
+		  max-width: 100vw;
+		  max-height: 100vh;
+
+		  object-fit: contain;
+		  object-position: center;
+		}
+    </style>
+    <title>Canvas Scaling</title>
+</head>
+<body>
+
+<div id="canvas-container">
+  <canvas id="canvas" width="100" height="100"></canvas>
+</div>
+
+<script>
+	const canvasContainer = document.getElementById("canvas-container");
+	const canvas = document.getElementById("canvas");
+	const ctx = canvas.getContext("2d");
+
+	function draw() {
+	  ctx.fillStyle = "red";
+	  ctx.fillRect(0, 0, 100, 100);
+
+	  ctx.fillStyle = "blue";
+	  ctx.fillRect(20, 20, 60, 60);
+
+	  // Добавляем линию
+	  ctx.beginPath();
+	  ctx.moveTo(0, 0);
+	  ctx.lineTo(500, 100);
+	  ctx.strokeStyle = "black";
+	  ctx.lineWidth = 20;
+	  ctx.stroke();
+	  
+	  // Рисуем круг
+        ctx.beginPath();
+        ctx.arc(100 / 2, 100 / 2, 100 / 2, 0, 2 * Math.PI);
+        ctx.fillStyle = 'blue';
+        ctx.fill();
+        ctx.closePath();
+		
+		//Масштабирование
+		const scale = Math.min(canvasContainer.clientWidth / canvas.width, canvasContainer.clientHeight / canvas.height);
+		canvas.style.transform = `scale(${scale},2)`;
+	}
+
+	window.addEventListener("load", () => {
+	  draw();
+	});
+
+	window.addEventListener("resize", () => {
+	  draw();
+	});
+</script>
+
+</body>
+</html>
