@@ -88,42 +88,6 @@ function resizeCanvas() {
   };
   canvas.width = stage.width;
   canvas.height = stage.height;
-	//switch (mode) {
-		/*case 'fixed':
-			stage.scaleWidth = window.innerWidth/stage.width
-			stage.scaleHeight = window.innerHeight/stage.height
-      canvas.width = stage.width;
-      canvas.height = stage.height;
-			
-			if (stage.scaleWidth < stage.scaleHeight) {
-				canvas.style.transform = 'scale(${stage.scaleWidth},${stage.scaleWidth})';
-			} else {
-				canvas.style.transform = 'scale(${stage.scaleHeight},${stage.scaleHeight})';
-			}
-      canvas.style.transform = 'scale(${stage.scaleHeight},${stage.scaleHeight})';
-		  // Определённый размер
-		  //ctx.setTransform(stage.scaleHeight, 0, 0, stage.scaleHeight, 0, 0);
-		  //window.innerWidth / canvas.width, window.innerHeight / canvas.height);
-		  //canvas.style.top = (window.innerHeight - canvas.height) / 2 + 'px';
-		  //canvas.style.left = (window.innerWidth - canvas.width) / 2 + 'px';
-      
-		  break;
-		case 'scaled':
-		  // Масштабирование
-		  canvas.width = window.innerWidth;
-		  canvas.height = window.innerHeight;
-		  ctx.scale(1, 1);
-		  break;
-		case 'adaptive':
-		  // Адаптивный размер
-		  canvas.width = window.innerWidth;
-		  canvas.height = window.innerHeight;
-		  break;
-	  }*/
-    //canvas.width = stage.width;
-    //canvas.height = stage.height;
-    //const scale = Math.min(canvasContainer.clientWidth / canvas.width, canvasContainer.clientHeight / canvas.height);
-		//canvas.style.transform = `scale(${scale})`;
 }
 
 // Функция для изменения режима отображения
