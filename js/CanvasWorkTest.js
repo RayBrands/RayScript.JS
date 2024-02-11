@@ -3,22 +3,21 @@ const ctx = canvas.getContext('2d');
 const canvasContainer = document.getElementById("canvas-container");
 
 // Функция для определения FPS
-let fps = 60;
+let fps = 6000;
 let then = Date.now();
 
 //"Сцена" и её стандартные свойства
 let stage = {
 	height: 700,
 	width: 200,
-	scaleWidth: 1,
-	scaleHeight: 1,
-  scaleMode: 'scaled' //Определение "типа" отрисовки
+  scaleMode: 'adaptive' //Определение "типа" отрисовки
 };
 
 //Тестовые значения
 let player = {
   x: 0,
-  y: 0
+  y: 0,
+  xs: 1
 };
 //Обновление экрана 
 //TODO: Сделать оптимизацию по поводу FPS (Желательно без использования timeout)
@@ -27,6 +26,7 @@ function update() {
   //Определение DeltaTime
   const now = Date.now();
   const dt = (now - then) / 1000;
+  if (dt<(1/fps)) return setTimeout(update, (1000 / fps)-dt);
   then = now;
 
   // Очистка холста
@@ -34,18 +34,32 @@ function update() {
   ctx.fillRect(0, 0, stage.width, stage.height);
  
   //Тест передвижения игрока на +1 пиксель
-  player.x += 1;
+  
+  player.x += dt*300*player.xs;
+  if (player.x+50 > stage.width){
+    player.xs = -1;
+    player.x = stage.width - 50;
+  } else if (player.x<0) {
+    player.xs = 1;
+    player.x = 0;
+  }
   // Отрисовка игрового мира
   ctx.fillStyle = 'red';
   //ctx.rotate((Math.PI / 180) * 10);
-  ctx.fillRect(player.x, player.y, 50, 50);
+  for (let i = 0;i<=20;i++){
+    for (let j =0; j<=20;j++){
+      ctx.fillRect(player.x+(60*j), player.y+(60*i), 50, 50);  
+    }
+      
+  }
+  
   
   // Обновление игрового мира (логика игры)
 
   // Отрисовка игрового мира (графика)
 
   // Ограничение FPS
-  setTimeout(update, 1000 / fps);
+  update();
 }
 
 // Функция для изменения размера canvas в зависимости от типа прорисовки
@@ -56,38 +70,31 @@ function resizeCanvas() {
   tempCanvas.height = canvas.height;
   var tempContext = tempCanvas.getContext("2d");
   tempContext.drawImage(ctx.canvas, 0, 0);
-  //Какие действия нужно сделать с основным Canvas
-  //canvas.style.transform = `scale(1,2)`;
-  //let scaleVar = '2';
-  //canvas.style.transform = `scale(${scaleVar},2)`;
-  canvas.width = stage.width;
-  canvas.height = stage.height;
   //Нарисовать в новом canvas изображение старого кадра
-  ctx.drawImage(tempContext.canvas, 0, 0);
   switch (stage.scaleMode) {
     case 'fixed': //Фиксированый размер Сцены, располагается по центру, имеет соотношение 1:1
-      canvas.style.transform = "scale(1)";
       break;
     case 'scaled': //Фиксированный размер Сцены, растягивется на весь экран соотношение зависит от размера экрана
       //TODO: Поработать над этим, либо же удалить нахуй
-      stage.scaleWidth = window.innerWidth/stage.width
+      /*stage.scaleWidth = window.innerWidth/stage.width
       stage.scaleHeight = window.innerHeight/stage.height
       if (stage.scaleWidth < stage.scaleHeight) {
 				canvas.style.transform = `scale(1,${stage.scaleHeight})`;
 			} else {
 				canvas.style.transform = `scale(${stage.scaleWidth},1)`;
-			}
+			}*/
       break;
-    case 'adaptive':
+    case 'adaptive': //Windows size = stage size
       stage.width = window.innerWidth;
       stage.height = window.innerHeight;
-      canvas.style.transform = `scale(1)`;
       break;
     case 'adaptive+scale': //Сделать масшабирование, в зависимости от коэффециента
       break;
   };
   canvas.width = stage.width;
   canvas.height = stage.height;
+  ctx.drawImage(tempContext.canvas, 0, 0);
+  canvas.style.transform = `scale(1)`;
 }
 
 // Функция для изменения режима отображения
