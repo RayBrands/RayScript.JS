@@ -10,7 +10,7 @@ canvas.width = canvasWidth;
 canvas.height = canvasHeight;
 
 // Определение ограничителя FPS
-const targetFPS = 500;
+const targetFPS = 15;
 const deltaTime = 1 / targetFPS;
 let lastTime = 0;
 
