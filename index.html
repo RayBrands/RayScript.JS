@@ -1,41 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your HTML Page</title>
-	
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<title>RayScript.JS</title>
 	<style>
-		body {
-		  margin: 0;
+		body{
+			background-color: black;
+		}
+		#canvas-container {
+		  position: absolute;
+		  top: 0;
+		  left: 0;
+		  width: 100%;
+		  height: 100%;
 		  overflow: hidden;
+		  background-color: black;
 		}
 
-		canvas {
-		  display: block;
+		#canvas {
+		  width: 100%;
+		  height: 100%;
+		  image-rendering: pixelated;
+		  margin: 0 auto;
+		  max-width: 100vw;
+		  max-height: 100vh;
+
+		  object-fit: contain;
+		  object-position: center;
 		}
 	</style>
-	
 </head>
 <body>
-
+	
 	<!--Тест работы интерпритатора--> 
-    
+	<!--<script src="js/main.js"></script>
 	<input type="text" id="editText" placeholder="Enter text">
     <button id="submitButton">Submit</button> 
 	<div id="output"></div>
-	
 
-    <!-- Подключение библиотеки (если она необходима) -->
-    <!-- <script src="path/to/your/library.js"></script> -->
-
-    <!--<script type="module" src="js/main.js"></script>-->
+	<!--Тест Canvas.--> 
+	<div id="canvas-container">
+		<canvas id="canvas" width="50" height="100" style="transform: scale(1);"></canvas>
+	</div>
 	
-	<!--Тест Canvas.--> <!--<canvas id="adaptiveCanvas"></canvas>-->
+	<script src="js/CanvasWorkTest.js"></script>
 	<!--Тест вставки файла--> <!--<input type="file" id="fileInput" />-->
 	
-	<!-- Подключение main.js -->
-	<script src="js/main.js"></script>
+	
 
 
 </body>

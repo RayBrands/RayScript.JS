@@ -230,7 +230,7 @@ const submitButton = document.getElementById('submitButton');
 const outputElement = document.getElementById('output');
 
 //При нажатии кнопки "submitButton"
-submitButton.addEventListener('click', function() { 
+/*submitButton.addEventListener('click', function() { 
 	const editTextValue = editTextElement.value;
 	// Пример использования
 	const inputText = "(([trunc with digits (4)] of (4.126795)))";
@@ -244,7 +244,7 @@ submitButton.addEventListener('click', function() {
 	
 	
 	myFunction(`Текст без скобок: ${result.text}\nЗначения в скобках: ${result.args.join(', ')}`);
-});
+});*/
 
 //Вывод значения в "output"
 function myFunction(text) {
