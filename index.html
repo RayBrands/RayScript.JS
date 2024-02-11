@@ -5,16 +5,29 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Пример с фиксированным размером</title>
 	<style>
-		body {
-		  margin: 0;
-		  overflow: hidden;
-		  background-color: black; /* set background color to black */
+		body{
+			background-color: black;
 		}
-		#adaptiveCanvas {
+		#canvas-container {
 		  position: absolute;
-		  transform: translate(0%, 0%);
-		  background-color: white; /* set background color to black */
+		  top: 0;
+		  left: 0;
+		  width: 100vw;
+		  height: 100vh;
+		  overflow: hidden;
+		  background-color: black;
+		}
+
+		#canvas {
+		  width: 100%;
+		  height: 100%;
 		  image-rendering: pixelated;
+		  margin: 0 auto;
+		  max-width: 100vw;
+		  max-height: 100vh;
+
+		  object-fit: contain;
+		  object-position: center;
 		}
 	</style>
 </head>
@@ -27,7 +40,10 @@
 	<div id="output"></div>
 
 	<!--Тест Canvas.--> 
-	<canvas id="adaptiveCanvas"></canvas>
+	<div id="canvas-container">
+		<canvas id="canvas" width="50" height="100" style="transform: scale(1);"></canvas>
+	</div>
+	
 	<script src="js/CanvasWorkTest.js"></script>
 	<!--Тест вставки файла--> <!--<input type="file" id="fileInput" />-->
 	
