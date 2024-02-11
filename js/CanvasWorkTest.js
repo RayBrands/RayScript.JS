@@ -74,21 +74,9 @@ function resizeCanvas() {
   switch (stage.scaleMode) {
     case 'fixed': //Фиксированый размер Сцены, располагается по центру, имеет соотношение 1:1
       break;
-    case 'scaled': //Фиксированный размер Сцены, растягивется на весь экран соотношение зависит от размера экрана
-      //TODO: Поработать над этим, либо же удалить нахуй
-      /*stage.scaleWidth = window.innerWidth/stage.width
-      stage.scaleHeight = window.innerHeight/stage.height
-      if (stage.scaleWidth < stage.scaleHeight) {
-				canvas.style.transform = `scale(1,${stage.scaleHeight})`;
-			} else {
-				canvas.style.transform = `scale(${stage.scaleWidth},1)`;
-			}*/
-      break;
     case 'adaptive': //Windows size = stage size
       stage.width = window.innerWidth;
       stage.height = window.innerHeight;
-      break;
-    case 'adaptive+scale': //Сделать масшабирование, в зависимости от коэффециента
       break;
   };
   canvas.width = stage.width;
@@ -105,11 +93,6 @@ function changeDisplayMode() {
       stage.scaleMode = 'fixed';
       resizeCanvas();
       break;
-    case 'scaled':
-      // Масштабирование
-      stage.scaleMode = 'scaled';
-      resizeCanvas();
-      break;
     case 'adaptive':
       // Адаптивный размер
       stage.scaleMode = 'adaptive';
@@ -120,7 +103,7 @@ function changeDisplayMode() {
 
 
 // Запуск игры
-ctx.imageSmoothingEnabled = true;
+ctx.imageSmoothingEnabled = false;
 resizeCanvas();
 //changeDisplayMode();
 update();
