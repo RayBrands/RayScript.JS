@@ -18,12 +18,19 @@ const variables = {
 	}
 };
 
-//Раскрытие скобок
+
 /*
-На вход принимает функцию со скобками (квадратные и круглые)
-На выходе:
-text - текст функции без скобок
-args - аргументы, которые находились внутри скобок, выводится в виде массива
+    Функция принимает на вход строку, 
+	представляющую собой функцию со скобками (квадратными и круглыми), 
+	и разделяет ее на текст функции и аргументы.
+
+    Args:
+        text: Строка, представляющая собой функцию со скобками.
+
+    Returns:
+        result: Объект с двумя полями:
+			* text: Текст функции без скобок.
+			* args: Массив аргументов, которые находились внутри скобок.
 */
 function openBrackets(text) { 
     const result = {
@@ -230,7 +237,7 @@ const submitButton = document.getElementById('submitButton');
 const outputElement = document.getElementById('output');
 
 //При нажатии кнопки "submitButton"
-/*submitButton.addEventListener('click', function() { 
+submitButton.addEventListener('click', function() { 
 	const editTextValue = editTextElement.value;
 	// Пример использования
 	const inputText = "(([trunc with digits (4)] of (4.126795)))";
@@ -244,7 +251,7 @@ const outputElement = document.getElementById('output');
 	
 	
 	myFunction(`Текст без скобок: ${result.text}\nЗначения в скобках: ${result.args.join(', ')}`);
-});*/
+});
 
 //Вывод значения в "output"
 function myFunction(text) {
