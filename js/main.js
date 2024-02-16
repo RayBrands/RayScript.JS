@@ -232,6 +232,149 @@ const operationDictionaryExtended = {
 const operator = "with";
 console.log("Тип операции:", operationDictionary[operator]);*/
 
+/*Функция, которая вызывает функцию с названием text*/
+function callFunctionByName(text,args) {
+	func = {
+		id: text.id,
+		opcode: text.opcode,
+		args: text.args
+	}
+		
+  /*if (typeof text !== 'string') {
+    throw new TypeError('Invalid argument: ' + text);
+  }
+  if (typeof window[text] !== 'function') {// **Проверка существования функции:**
+    throw new Error('Function not found: ' + text);
+  }*/
+  // **Вызов функции:**
+  let startFync = `${func.id}.${func.opcode}`;
+  console.log(startFync);
+  // Создание функции-конструктора
+  console.log(args);
+  const funcReturn = text.func.apply(null, ...args);
+
+  // Вызов функции
+  return funcReturn;
+  //return window[startFync]();
+}
+
+function isNotClassValid(clazz) {
+  return !(clazz.prototype && clazz.prototype.getInfo && typeof clazz.prototype.getInfo === 'function');
+}
+
+/*
+ Класс extensions
+ 
+ Принимает модуль, добавляет команды в commands
+ 
+ Добавляет значения блоков в blocks (Распределяя по классам)
+ 
+ modules содержит все подключённые модули а также их описание, color и ссылка на документацию
+*/
+
+class extensions {
+  constructor() {
+    this.commands = new Map();
+    this.blocks = new Map();
+    this.modules = new Map();
+  }
+
+  register(clazz) { //Регистрация нового модуля
+    if (isNotClassValid(clazz)) {
+      throw new Error('Invalid class: ' + clazz.name);
+    }
+    
+    const info = clazz.prototype.getInfo();
+    const moduleInfo = {
+        name: info.name,
+        color: info.color, // pure red
+        docsURI: info.docsURI, //Документация к модулю
+    }
+    this.modules.set(info.id, moduleInfo);
+
+    // Registration code remains the same
+    // Регистрация блоков
+      for (const block of info.blocks) {
+        //Регистрация команд
+        const key = block.text.replace(/\s/g, ''); // Ключ без пробелов
+        this.commands.set(openBrackets(key).text, {
+          id: info.id,
+          opcode: block.opcode,
+          args: block.args,
+		  func: clazz.prototype[block.opcode]  //возможно стоит изменить это
+        });
+        //Регистрация блоков
+        const blocksForClass = this.blocks.get(info.id) || {};
+        blocksForClass[block.text] = {
+          type: block.type,
+          description: block.description,
+          args: block.args
+        };
+        this.blocks.set(info.id, blocksForClass);
+      }
+      return this;
+  }
+  
+  
+}
+const ext = new extensions();//Инициализация дополнений
+
+/*Modules*/
+class HelloWorld {
+  getInfo() {
+    return {
+      id: 'HelloWorld',
+      name: 'It works!',
+      color: '#ff0000', // pure red
+      docsURI: 'https://ya.ru', //Документация к модулю
+      blocks: [
+        {
+          text: 'Hello !(var)',
+          opcode: 'hello',
+          type: 'reporter',
+          description: 'Описание блока'
+        },
+        {
+            text: 'world !',
+            opcode: 'world',
+            type: 'reporter',
+            description: 'возвращает значение world!'
+        },
+        {
+          opcode: 'strictlyEquals',
+          type: 'boolean',
+          text: '[ONE] strictly equals [TWO]',
+          args: {
+            ONE: {
+              type: 'string'
+            },
+            TWO: {
+              type: 'string',
+              defaultValue: 'Second value'
+            }
+          }
+        }
+      ]
+    };
+  }
+	hello() {
+		return 'hello';
+	};
+	world() {
+	return 'world';
+	};
+	strictlyEquals(args) {
+		console.log(args);
+		//return args[0] === args[1];
+	};
+  
+};
+
+
+ext.register(HelloWorld);
+
+
+
 const editTextElement = document.getElementById('editText');
 const submitButton = document.getElementById('submitButton');
 const outputElement = document.getElementById('output');
@@ -243,14 +386,14 @@ submitButton.addEventListener('click', function() {
 	const inputText = "(([trunc with digits (4)] of (4.126795)))";
 	//Текст без скобок: text  of func  an 
 	//Значения в скобках: ['a', '(a)+(b)', 'list']
-
+	
 	const result = openBrackets(editTextElement.value);
 	console.log("Текст без скобок:", result.text);
 	console.log("Значения в скобках:", result.args);
 	console.log("Parser:", parser(result.text,result.args));
-	
-	
-	myFunction(`Текст без скобок: ${result.text}\nЗначения в скобках: ${result.args.join(', ')}`);
+	console.log();
+	const result2 = callFunctionByName(ext.commands.get(openBrackets(editTextElement.value).text),openBrackets(editTextElement.value).args)
+	myFunction(`Текст без скобок: ${result2}`);
 });
 
 //Вывод значения в "output"
