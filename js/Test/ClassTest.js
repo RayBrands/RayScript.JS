@@ -93,7 +93,7 @@ class extensions {
         const key = block.text.replace(/\s/g, ''); // Ключ без пробелов
         this.commands.set(openBrackets(key).text, {
           id: info.id,
-          opcode: block.opcode,
+          opcode: clazz.prototype[block.opcode], //возможно стоит изменить это
           args: block.args
         });
         //Регистрация блоков

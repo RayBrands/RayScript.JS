@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<title>RayScript.JS</title>
+	<style>
+		body{
+			background-color: black;
+		}
+		#canvas-container {
+		  position: absolute;
+		  top: 0;
+		  left: 0;
+		  width: 100%;
+		  height: 100%;
+		  overflow: hidden;
+		  background-color: black;
+		}
+
+		#canvas {
+		  width: 100%;
+		  height: 100%;
+		  image-rendering: pixelated;
+		  margin: 0 auto;
+		  max-width: 100vw;
+		  max-height: 100vh;
+
+		  object-fit: contain;
+		  object-position: center;
+		}
+	</style>
+</head>
+<body>
+	
+	<!--Тест работы интерпритатора--> 
+	
+	<input type="text" id="editText" placeholder="Enter text">
+    <button id="submitButton">Submit</button> 
+	<div id="output" style="color:white"></div>
+    <script>
+		function callFunction(text, args) {
+			// Проверка, является ли text строкой
+			if (typeof text !== 'string') {
+				throw new TypeError('text должен быть строкой');
+			}
+			// Проверка, является ли args массивом
+			if (!Array.isArray(args)) {
+				throw new TypeError('args должен быть массивом');
+			}
+
+			// Получение функции из объекта window
+			const func = window[text];
+
+			// Проверка, является ли func функцией
+			if (typeof func !== 'function') {
+				throw new TypeError(`Функция ${text} не найдена`);
+			}
+
+			// Вызов функции с аргументами
+			return func(...args);
+		}
+
+		function sum (args){
+			return args;
+		}
+		const text = 'sum';
+		const args = [1, 2];
+
+		const result = callFunction(text, args);
+
+		console.log(result); // 6
+
+	
+	</script>
+	<!--Тест Canvas.--> 
+	<!--<div id="canvas-container">
+		<canvas id="canvas" width="50" height="100" style="transform: scale(1);"></canvas>
+	</div>
+	<script src="js/CanvasWorkTest.js"></script>-->
+	
+	<!--Тест вставки файла--> <!--<input type="file" id="fileInput" />-->
+	
+	
+
+
+</body>
+</html>

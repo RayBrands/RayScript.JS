@@ -258,6 +258,29 @@ function callFunctionByName(text,args) {
   //return window[startFync]();
 }
 
+
+function callFunction(text, args) {
+	// Проверка, является ли text строкой
+	if (typeof text !== 'string') {
+		throw new TypeError('text должен быть строкой');
+	}
+	// Проверка, является ли args массивом
+	if (!Array.isArray(args)) {
+		throw new TypeError('args должен быть массивом');
+	}
+
+	// Получение функции из объекта window
+	const func = window[text];
+
+	// Проверка, является ли func функцией
+	if (typeof func !== 'function') {
+		throw new TypeError(`Функция ${text} не найдена`);
+	}
+
+	// Вызов функции с аргументами
+	return func(...args);
+}
+
 function isNotClassValid(clazz) {
   return !(clazz.prototype && clazz.prototype.getInfo && typeof clazz.prototype.getInfo === 'function');
 }
@@ -289,6 +312,7 @@ class extensions {
         name: info.name,
         color: info.color, // pure red
         docsURI: info.docsURI, //Документация к модулю
+		description: info.description //краткое описание модуля
     }
     this.modules.set(info.id, moduleInfo);
 
@@ -321,57 +345,58 @@ const ext = new extensions();//Инициализация дополнений
 
 /*Modules*/
 class HelloWorld {
-  getInfo() {
-    return {
-      id: 'HelloWorld',
-      name: 'It works!',
-      color: '#ff0000', // pure red
-      docsURI: 'https://ya.ru', //Документация к модулю
-      blocks: [
-        {
-          text: 'Hello !(var)',
-          opcode: 'hello',
-          type: 'reporter',
-          description: 'Описание блока'
-        },
-        {
-            text: 'world !',
-            opcode: 'world',
-            type: 'reporter',
-            description: 'возвращает значение world!'
-        },
-        {
-          opcode: 'strictlyEquals',
-          type: 'boolean',
-          text: '[ONE] strictly equals [TWO]',
-          args: {
-            ONE: {
-              type: 'string'
-            },
-            TWO: {
-              type: 'string',
-              defaultValue: 'Second value'
-            }
-          }
-        }
-      ]
-    };
-  }
+	getInfo() {
+		return {
+			id: 'HelloWorld',
+			name: 'It works!',
+			color: '#ff0000', // pure red
+			docsURI: 'https://ya.ru', //Документация к модулю
+			description: 'Описание модуля', //Описание модуля
+			blocks: [
+				{
+					text: 'Hello !(var)',
+					opcode: 'hello',
+					type: 'reporter',
+					description: 'Описание блока'
+				},
+				{
+					text: 'world !',
+					opcode: 'world',
+					type: 'reporter',
+					description: 'возвращает значение world!'
+				},
+				{
+					text: '[ONE] strictly equals [TWO]',
+					opcode: 'strictlyEquals',
+					type: 'boolean',
+					description: 'Сравнение ONE с TWO',
+					args: {
+						ONE: {
+						  type: 'string'
+						},
+						TWO: {
+						  type: 'string',
+						  defaultValue: 'Second value'
+						}
+					}
+				}
+			]
+		};
+	}
+	//Функции модуля
 	hello() {
 		return 'hello';
 	};
 	world() {
-	return 'world';
+		return 'world';
 	};
-	strictlyEquals(args) {
-		console.log(args);
+	strictlyEquals(a,b) {
+		console.log(a);
+		console.log(b);
 		//return args[0] === args[1];
 	};
-  
 };
-
-
-ext.register(HelloWorld);
+ext.register(HelloWorld);//Регистрация нового модуля "HelloWorld"
 
 
 
