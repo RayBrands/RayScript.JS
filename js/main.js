@@ -232,58 +232,7 @@ const operationDictionaryExtended = {
 const operator = "with";
 console.log("Тип операции:", operationDictionary[operator]);*/
 
-/*Функция, которая вызывает функцию с названием text*/
-function callFunctionByName(text,args) {
-	func = {
-		id: text.id,
-		opcode: text.opcode,
-		args: text.args
-	}
-		
-  /*if (typeof text !== 'string') {
-    throw new TypeError('Invalid argument: ' + text);
-  }
-  if (typeof window[text] !== 'function') {// **Проверка существования функции:**
-    throw new Error('Function not found: ' + text);
-  }*/
-  // **Вызов функции:**
-  let startFync = `${func.id}.${func.opcode}`;
-  console.log(startFync);
-  // Создание функции-конструктора
-  console.log(args);
-  const funcReturn = text.func.apply(null, ...args);
 
-  // Вызов функции
-  return funcReturn;
-  //return window[startFync]();
-}
-
-
-function callFunction(text, args) {
-	// Проверка, является ли text строкой
-	if (typeof text !== 'string') {
-		throw new TypeError('text должен быть строкой');
-	}
-	// Проверка, является ли args массивом
-	if (!Array.isArray(args)) {
-		throw new TypeError('args должен быть массивом');
-	}
-
-	// Получение функции из объекта window
-	const func = window[text];
-
-	// Проверка, является ли func функцией
-	if (typeof func !== 'function') {
-		throw new TypeError(`Функция ${text} не найдена`);
-	}
-
-	// Вызов функции с аргументами
-	return func(...args);
-}
-
-function isNotClassValid(clazz) {
-  return !(clazz.prototype && clazz.prototype.getInfo && typeof clazz.prototype.getInfo === 'function');
-}
 
 /*
  Класс extensions
@@ -306,7 +255,6 @@ class extensions {
     if (isNotClassValid(clazz)) {
       throw new Error('Invalid class: ' + clazz.name);
     }
-    
     const info = clazz.prototype.getInfo();
     const moduleInfo = {
         name: info.name,
@@ -342,7 +290,43 @@ class extensions {
   
 }
 const ext = new extensions();//Инициализация дополнений
+/*Функция, которая вызывает функцию с названием text*/
 
+
+function callFunction(ext,text, args) {
+	//let func = {
+	//	id: text.id,
+	//	opcode: text.opcode,
+	//	args: text.args
+	//}
+	/*// Проверка, является ли text строкой
+	if (typeof text !== 'string') {
+		throw new TypeError('text должен быть строкой');
+	}
+	// Проверка, является ли args массивом
+	if (!Array.isArray(args)) {
+		throw new TypeError('args должен быть массивом');
+	}*/
+
+	//const clazz = ext.modules.get(func.id).clazz; // Получить класс по имени
+	//const instance = new clazz(); // Создать экземпляр класса
+	const result = text(...args);
+
+	// Получение функции из объекта window
+	//const func = window[text];
+
+	/*// Проверка, является ли func функцией
+	if (typeof func !== 'function') {
+		throw new TypeError(`Функция ${text} не найдена`);
+	}*/
+
+	// Вызов функции с аргументами
+	return result;
+}
+
+function isNotClassValid(clazz) {
+  return !(clazz.prototype && clazz.prototype.getInfo && typeof clazz.prototype.getInfo === 'function');
+}
 /*Modules*/
 class HelloWorld {
 	getInfo() {
@@ -370,15 +354,6 @@ class HelloWorld {
 					opcode: 'strictlyEquals',
 					type: 'boolean',
 					description: 'Сравнение ONE с TWO',
-					args: {
-						ONE: {
-						  type: 'string'
-						},
-						TWO: {
-						  type: 'string',
-						  defaultValue: 'Second value'
-						}
-					}
 				}
 			]
 		};
@@ -392,7 +367,10 @@ class HelloWorld {
 	};
 	strictlyEquals(a,b) {
 		console.log(a);
-		console.log(b);
+		console.log("next:")
+		let clazz = (new HelloWorld)
+		console.log(clazz.hello()); //Вызов функции внутри класса
+		return (a===b?1:0);
 		//return args[0] === args[1];
 	};
 };
@@ -417,7 +395,9 @@ submitButton.addEventListener('click', function() {
 	console.log("Значения в скобках:", result.args);
 	console.log("Parser:", parser(result.text,result.args));
 	console.log();
-	const result2 = callFunctionByName(ext.commands.get(openBrackets(editTextElement.value).text),openBrackets(editTextElement.value).args)
+	let textVar = openBrackets(editTextElement.value).text;
+	let args = openBrackets(editTextElement.value).args;
+	const result2 = callFunction(ext,ext.commands.get(textVar).func,args)
 	myFunction(`Текст без скобок: ${result2}`);
 });
 

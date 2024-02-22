@@ -1,0 +1,57 @@
+/*Modules*/
+class HelloWorld {
+	getInfo() {
+		return {
+			id: 'HelloWorld',
+			name: 'It works!',
+			color: '#ff0000', // pure red
+			docsURI: 'https://ya.ru', //Документация к модулю
+			description: 'Описание модуля', //Описание модуля
+			blocks: [
+				{
+					text: 'Hello !(var)',
+					opcode: 'hello',
+					type: 'reporter',
+					description: 'Описание блока'
+				},
+				{
+					text: 'world !',
+					opcode: 'world',
+					type: 'reporter',
+					description: 'возвращает значение world!'
+				},
+				{
+					text: '[ONE] strictly equals [TWO]',
+					opcode: 'strictlyEquals',
+					type: 'boolean',
+					description: 'Сравнение ONE с TWO',
+					args: {
+						ONE: {
+						  type: 'string'
+						},
+						TWO: {
+						  type: 'string',
+						  defaultValue: 'Second value'
+						}
+					}
+				}
+			]
+		};
+	}
+	//Функции модуля
+	hello() {
+		return 'hello';
+	};
+	world() {
+		return 'world';
+	};
+	strictlyEquals(a,b) {
+		console.log(a);
+		console.log("next:")
+		let clazz = (new HelloWorld)
+		console.log(clazz.hello()); //Вызов функции внутри класса
+		return (a===b?1:0);
+		//return args[0] === args[1];
+	};
+};
+ext.register(HelloWorld);//Регистрация нового модуля "HelloWorld"
