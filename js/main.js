@@ -376,7 +376,305 @@ class HelloWorld {
 };
 ext.register(HelloWorld);//Регистрация нового модуля "HelloWorld"
 
+class StringsExt {
+    getInfo() {
+        return Object.assign(Object.assign({}, StringsExt.extInfo), { blocks: [...StringsExt.blocksInfo] });
+    }
+    joinStrings(firstString, secondString) {
+        return firstString + secondString;
+    }
+    containsSubstring(mainString, subString) {
+        return mainString.includes(subString) ? 1 : 0;
+    }
+    convertToLowercase(inputString) {
+        return inputString.toLowerCase();
+    }
+    convertToUppercase(inputString) {
+        return inputString.toUpperCase();
+    }
+    getCharacterAtIndex(index, inputString) {
+        if (index < 0 || index >= inputString.length) {
+            throw new Error("Index out of bounds");
+        }
+        return inputString.charAt(index);
+    }
+    countSubstrings(substring, mainString) {
+        if (!substring) {
+            throw new Error("Empty substring provided");
+        }
+        return mainString.split(substring).length - 1;
+    }
+    indexOfSubstring(substring, mainString) {
+        return mainString.indexOf(substring);
+    }
+    getSubstringFromRange(startIndex, endIndex, inputString) {
+        if (startIndex < 0 || endIndex >= inputString.length || startIndex > endIndex) {
+            throw new Error("Invalid range");
+        }
+        return inputString.substring(startIndex, endIndex + 1);
+    }
+    getItemFromSplit(index, separator, inputString) {
+        const parts = inputString.split(separator);
+        if (index < 0 || index >= parts.length) {
+            throw new Error("Index out of bounds");
+        }
+        return parts[index];
+    }
+    replaceSubstring(oldSubstring, newSubstring, inputString) {
+        return inputString.split(oldSubstring).join(newSubstring);
+    }
+}
+StringsExt.extInfo = {
+    id: "StringsExt",
+    name: "Strings Operations",
+    description: "Strings functions for operation",
+};
+StringsExt.blocksInfo = [
+    {
+        text: '( ) join ( )',
+        opcode: 'joinStrings',
+        description: 'Возвращает конкатенацию строк a и b'
+    },
+    {
+        text: '( ) contains ( )',
+        opcode: 'containsSubstring',
+        description: 'Проверяет, содержит ли строка a подстроку b'
+    },
+    {
+        text: 'lower ( )',
+        opcode: 'convertToLowercase',
+        description: 'Преобразует строку a в нижний регистр'
+    },
+    {
+        text: 'upper ( )',
+        opcode: 'convertToUppercase',
+        description: 'Преобразует строку a в верхний регистр'
+    },
+    {
+        text: 'letter ( ) of ( )',
+        opcode: 'getCharacterAtIndex',
+        description: 'Возвращает символ строки b по индексу a'
+    },
+    {
+        text: 'count ( ) of ( )',
+        opcode: 'countSubstrings',
+        description: 'Возвращает количество подстрок a в строке b'
+    },
+    {
+        text: 'index ( ) of ( )',
+        opcode: 'indexOfSubstring',
+        description: 'Возвращает индекс первого вхождения подстроки a в строку b'
+    },
+    {
+        text: 'letters ( ) to ( ) of ( )',
+        opcode: 'getSubstringFromRange',
+        description: 'Возвращает подстроку c с индексами из диапазона [a..b]'
+    },
+    {
+        text: 'item ( ) split by ( ) of ( )',
+        opcode: 'getItemFromSplit',
+        description: 'Возвращает подстроку #a из разделения строки c подстрокой b'
+    },
+    {
+        text: 'replace ( ) with ( ) of ( )',
+        opcode: 'replaceSubstring',
+        description: 'Заменяет все вхождения подстроки a на подстроку b в строке c'
+    }
+];
+ext.register(StringsExt);
 
+class PenModule {
+    constructor(canvasId, radiusColorDict = null) {
+      this.canvas = document.getElementById(canvasId);
+      this.ctx = this.canvas.getContext('2d');
+      this.setRadiusColorDict(radiusColorDict);
+    }
+  
+    setRadiusColorDict(radiusColorDict) {
+        const defaultRadiusColorDict = [
+          ['radius', 20],
+          ['colorFill', 'red'],
+          ['colorOutline', 'black'],
+          ['widthOutline', 6]
+        ];
+      
+        this.radiusColorMap = new Map(defaultRadiusColorDict);
+      
+        if (radiusColorDict) {
+          for (const [key, value] of radiusColorDict) {
+            this.radiusColorMap.set(key, value);
+          }
+        }
+      
+        // If any key is missing from radiusColorDict, set its default value
+        for (const [key, value] of defaultRadiusColorDict) {
+          if (!this.radiusColorMap.has(key)) {
+            this.radiusColorMap.set(key, value);
+          }
+        }
+    }
+  
+    applyDefaultCanvasSize() {
+      this.canvas.width = window.innerWidth;
+      this.canvas.height = window.innerHeight;
+    }
+
+    createCanvas(width = window.innerWidth, height = window.innerHeight) {
+      this.canvas = document.createElement('canvas');
+      this.canvas.width = width;
+      this.canvas.height = height;
+      document.body.appendChild(this.canvas);
+    }
+  
+    deleteCanvas() {
+      if (this.canvas && this.canvas.parentNode) {
+        this.canvas.parentNode.removeChild(this.canvas);
+      }
+    }
+  
+    clearCanvas() {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+  
+    drawShape(shapeFunction, x, y, fill = false, outline = true) {
+      this.applyDefaultCanvasSize();
+      const radius = this.radiusColorMap.get('radius');
+      const colorFill = this.radiusColorMap.get('colorFill');
+      const colorOutline = this.radiusColorMap.get('colorOutline');
+      const widthOutline = this.radiusColorMap.get('widthOutline');
+  
+      this.ctx.save();
+      this.ctx.beginPath();
+      shapeFunction.call(this, x, y, radius);
+      if (fill && !outline) {
+        this.ctx.fillStyle = colorFill;
+        this.ctx.fill();
+      } else if (!fill && outline){
+        this.ctx.lineWidth = widthOutline;
+        this.ctx.strokeStyle = colorOutline;
+        this.ctx.stroke();
+      } else {
+        this.ctx.fillStyle = colorFill;
+        this.ctx.lineWidth = widthOutline;
+        this.ctx.strokeStyle = colorOutline;
+        this.ctx.fill();
+        this.ctx.stroke();
+      }
+      this.ctx.restore();
+    }
+  
+    drawPoint(pointX, pointY) {
+      this.drawShape(this.drawArc, pointX, pointY, true, false);
+    }
+  
+    drawCircle(circleX, circleY, fill = false) {
+      this.drawShape(this.drawArc, circleX, circleY, fill);
+    }
+  
+    drawSemiCircle(semiCircleX, semiCircleY, fill = false) {
+      this.drawShape(this.drawSemiArc, semiCircleX, semiCircleY, fill);
+    }
+  
+    drawLine(startX, startY, endX, endY) {
+      this.applyDefaultCanvasSize();
+      const color = this.radiusColorMap.get('colorFill');
+      const widthOutline = this.radiusColorMap.get('widthOutline');
+      const centerStartX = startX + this.canvas.width / 2;
+      const centerStartY = startY + this.canvas.height / 2;
+      const centerEndX = endX + this.canvas.width / 2;
+      const centerEndY = -1 * endY + this.canvas.height / 2;
+  
+      this.ctx.save();
+      this.ctx.beginPath();
+      this.ctx.moveTo(centerStartX, centerStartY);
+      this.ctx.lineTo(centerEndX, centerEndY);
+      this.ctx.lineWidth = widthOutline;
+      this.ctx.strokeStyle = color;
+      this.ctx.stroke();
+      this.ctx.restore();
+    }
+  
+    drawSquare(squareX, squareY, size = 100, fill = false) {
+      this.applyDefaultCanvasSize();
+      const centerX = squareX + this.canvas.width / 2 + size / 2 * -1;
+      const centerY = squareY + this.canvas.height / 2 + size / 2 * -1;
+      const color = fill ? this.radiusColorMap.get('colorFill') : this.radiusColorMap.get('colorOutline');
+  
+      this.ctx.save();
+      this.ctx.beginPath();
+      if (fill) {
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(centerX, centerY, size, size);
+      } else {
+        this.ctx.strokeStyle = color;
+        this.ctx.strokeRect(centerX, centerY, size, size);
+      }
+      this.ctx.restore();
+    }
+  
+    drawArc(x, y, radius) {
+      const centerX = x + this.canvas.width / 2;
+      const centerY = y + this.canvas.height / 2;
+      this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+    }
+  
+    drawSemiArc(x, y, radius) {
+      const centerX = x + this.canvas.width / 2;
+      const centerY = y + this.canvas.height / 2;
+      this.ctx.arc(centerX, centerY, radius, 0, Math.PI, false);
+    }
+    
+    getInfo() {
+        return {
+          id: 'PenModule',
+          name: 'Pen Module',
+          description: 'Provides methods to draw shapes on canvas.',
+          blocks: [
+            {
+              text: 'Draw Point at x: [ ] y: [ ]',
+              opcode: 'drawPoint',
+              description: 'Draws a point on the canvas.'
+            },
+            {
+              text: 'Draw Circle at x: [ ] y: [ ]',
+              opcode: 'drawCircle',
+              description: 'Draws a circle on the canvas.'
+            },
+            {
+              text: 'Draw Semi-Circle at x: [ ] y: [ ]',
+              opcode: 'drawSemiCircle',
+              description: 'Draws a semi-circle on the canvas.'
+            },
+            {
+              text: 'Draw Line from (x1: [ ] y1: [ ]) to (x2: [ ] y2: [ ])',
+              opcode: 'drawLine',
+              description: 'Draws a line on the canvas.'
+            },
+            {
+              text: 'Draw Square at x: [ ] y: [ ] size: [ ]',
+              opcode: 'drawSquare',
+              description: 'Draws a square on the canvas.'
+            },
+            {
+              text: 'Create Canvas with width: [ ] height: [ ]',
+              opcode: 'createCanvas',
+              description: 'Creates a new canvas with specified width and height.'
+            },
+            {
+              text: 'Delete Canvas',
+              opcode: 'deleteCanvas',
+              description: 'Deletes the canvas from the DOM.'
+            },
+            {
+              text: 'Clear Canvas',
+              opcode: 'clearCanvas',
+              description: 'Clears all drawings on the canvas.'
+            }
+          ]
+        };
+    }    
+  }
+ext.register(PenModule);
 
 const editTextElement = document.getElementById('editText');
 const submitButton = document.getElementById('submitButton');
