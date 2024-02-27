@@ -46,9 +46,12 @@ function openBrackets(text) {
 
   try {
     for (let char of text) {
+      // Check if the first character inside brackets needs to be included
+      const includeFirstChar = currentLevel > 0 && currentBracketValue === "";
+
       if (char === "(" && squareBracketCount === 0 && curlyBracketCount === 0) {
         roundBracketCount++;
-        if (currentLevel === 0) {
+        if (includeFirstChar) {
           currentBracketValue += char;
         }
         currentLevel++;
@@ -67,7 +70,7 @@ function openBrackets(text) {
         }
       } else if (char === "[" && roundBracketCount === 0 && curlyBracketCount === 0) {
         squareBracketCount++;
-        if (currentLevel === 0) {
+        if (includeFirstChar) {
           currentBracketValue += char;
         }
         currentLevel++;
@@ -87,10 +90,9 @@ function openBrackets(text) {
       } else if (char === "{" && roundBracketCount === 0 && squareBracketCount === 0) {
         curlyBracketCount++;
         if (currentLevel === 0) {
-          // Не добавлять первую фигурную скобку
-          if (char !== "{") {
-            currentBracketValue += char;
-          }
+          // Skip the first curly bracket
+        } else {
+          currentBracketValue += char;
         }
         currentLevel++;
       } else if (char === "}" && roundBracketCount === 0 && squareBracketCount === 0) {
@@ -100,11 +102,13 @@ function openBrackets(text) {
           if (curlyBracketCount > 0) {
             currentBracketValue += char;
           } else {
-            // Разделить аргументы по символу \n
+            // Split and push arguments after removing the closing curly bracket
             const args = currentBracketValue.trim().split(/\n/);
+            const nestedArray = [];
             for (const arg of args) {
-              result.args.push(arg.trim());
+              nestedArray.push(arg.trim());
             }
+            result.args.push(nestedArray);
             currentBracketValue = "";
           }
         }
@@ -120,6 +124,7 @@ function openBrackets(text) {
 
   return result;
 }
+
 
 
 
@@ -196,51 +201,37 @@ function exampleFunction() {
     console.log(ext); // Можно использовать глобальную переменную внутри функции
 }
 
+
+
 function parser(_text) {
-	let bracketsText = openBrackets(_text).text.replace(/ /g, "").toLowerCase(), bracketsArgs = openBrackets(_text).args;
-	
-	/*var a,b,c=0;
-	const oneArg = {
-		'!': (a) => (returnReq(!a)),
-		'not': (a) => (returnReq(!a))
-	};
-    
-	
-    // Если _text - числовое значение, возвращаем его
-    if (!isNaN(_text)) {
-        return parseFloat(_text);
-    } else {
-        // Если _text - оператор, выполняем соответствующую операцию
-        if (oneArg[_text]) {
-			a = parser(openBrackets(args[0]).text,openBrackets(args[0]).args);
-            return oneArg[_text](a);
-        } else if (twoArg[_text]) {
-			a = parser(openBrackets(args[0]).text,openBrackets(args[0]).args);
-			b = parser(openBrackets(args[1]).text,openBrackets(args[1]).args);
-            return twoArg[_text](a,b);
-        } 
-		// Если _text не числовое значение и не оператор, возвращаем его как есть
-		return _text;
-    }*/
-	let funcVar = ext.commands.get(bracketsText);
-	console.log(bracketsText);
+	//console.log ('parser text = ', _text);
+	let bracketsText = openBrackets(_text).text, bracketsArgs = openBrackets(_text).args;
+	function hasNestedArray(array) { //Проверка того, что в массиве нет массива
+	  return array.some(element => element instanceof Array);
+	}
+	let funcVar = ext.commands.get(bracketsText.replace(/ /g, "").toLowerCase());
+	//console.log(bracketsText);
 	if (!isNaN(bracketsText)){
 		return parseFloat(bracketsText);
 	} else if (typeof funcVar !== 'undefined') {
-		for (let i = 0; i < bracketsArgs.length; i++) {
-			bracketsArgs[i] = parser(bracketsArgs[i]);
+		if (!hasNestedArray(bracketsArgs)){
+			for (let i = 0; i < bracketsArgs.length; i++) {
+				bracketsArgs[i] = parser(bracketsArgs[i]);
+			}
 		}
-		console.log(callFunction(funcVar.func,bracketsArgs));
+		//console.log(callFunction(funcVar.func,bracketsArgs));
 		return callFunction(funcVar.func,bracketsArgs);
 		//let func = 
 	};
-	
 	return bracketsText==""?"0f".toString():bracketsText;
-	
 }
 
 
-function callFunction(text, args) { //TODO: Сделать описание и сделать проверку функций и аргументов
+function callFunction(text, ...args) { //TODO: Сделать описание и сделать проверку функций и аргументов
+	
+	const result = text(...args);
+	return result;
+}
 	//let func = {
 	//	id: text.id,
 	//	opcode: text.opcode,
@@ -257,7 +248,7 @@ function callFunction(text, args) { //TODO: Сделать описание и �
 
 	//const clazz = ext.modules.get(func.id).clazz; // Получить класс по имени
 	//const instance = new clazz(); // Создать экземпляр класса
-	const result = text(...args);
+	
 
 	// Получение функции из объекта window
 	//const func = window[text];
@@ -268,8 +259,8 @@ function callFunction(text, args) { //TODO: Сделать описание и �
 	}*/
 
 	// Вызов функции с аргументами
-	return result;
-}
+	
+//}
 
 function isNotClassValid(clazz) {
   return !(clazz.prototype && clazz.prototype.getInfo && typeof clazz.prototype.getInfo === 'function');
@@ -323,6 +314,54 @@ class HelloWorld {
 	};
 };
 ext.register(HelloWorld);//Регистрация нового модуля "HelloWorld"
+
+class baseBlocks{
+	getInfo() {
+		return {
+			id: 'baseBlocks',
+			name: 'Базовые блоки',
+			//color: '#ff0000', // pure red
+			//docsURI: 'https://ya.ru', //Документация к модулю
+			description: 'Описание модуля', //Описание модуля
+			blocks: [
+				{
+					text: 'rys',
+					opcode: 'rys',
+					//type: 'reporter',
+					description: 'Выполнение основного кода'
+				},
+				{
+					text: '+',
+					opcode: 'summ',
+					//type: 'reporter',
+					description: 'Выполнение основного кода'
+				},
+			]
+		}
+	}
+	/*Функции модуля*/
+	rys(args){
+		//console.log("Вызвана rys");
+		//console.log(args);
+		if (!Array.isArray(args)) {
+			throw new TypeError("Argument must be an array");
+		}
+		let commandsArray = args[0];
+		console.log("rys module commands:" + commandsArray);
+		// Перебор элементов массива и вывод их в консоль
+		let result;
+		for (const commands of commandsArray) {
+			
+			console.log('rys module: ' + commands);
+			result = parser(commands);
+		}
+		return result;
+	}
+	summ(args){
+		return args[0]+args[1];
+	}
+}
+ext.register(baseBlocks);
 
 class StringsExt {
     static extInfo = {
@@ -903,25 +942,16 @@ function getNumberArray(arr){
 submitButton.addEventListener('click', function() { 
 	const editTextValue = editTextElement.value;
 	// Пример использования
-	const inputText = "(([trunc with digits (4)] of (4.126795)))";
-	//Текст без скобок: text  of func  an 
-	//Значения в скобках: ['a', '(a)+(b)', 'list']
-	
-	const result = openBrackets(editTextElement.value);
-	console.log("Текст без скобок:", result.text);
-	console.log("Значения в скобках:", result.args);
-	console.log("Parser:", parser(result.text,result.args));
-	console.log();
-	let textVar = openBrackets(editTextElement.value).text;
-	let args = openBrackets(editTextElement.value).args;
-	const result2 = callFunction(ext.commands.get(textVar).func,args)
-	myFunction(`Текст без скобок: ${result2}`);
+	//let textVar = openBrackets(editTextElement.value).text;
+	//let args = openBrackets(editTextElement.value).args;
+	const result2 = parser(editTextElement.value);
+	myFunction(`${result2}`);
 });
 
 //Вывод значения в "output"
 function myFunction(text) {
     // Ваш код, использующий текст из editText
-    outputElement.innerHTML = 'Received text: ' + text;
+    outputElement.innerHTML = 'Program returned: ' + text;
 }
 
 const inputText = "(9)+((1)+(1))";

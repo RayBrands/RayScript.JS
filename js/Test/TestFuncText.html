@@ -39,37 +39,32 @@
     <button id="submitButton">Submit</button> 
 	<div id="output" style="color:white"></div>
     <script>
-		function callFunction(text, args) {
-			// Проверка, является ли text строкой
-			if (typeof text !== 'string') {
-				throw new TypeError('text должен быть строкой');
-			}
-			// Проверка, является ли args массивом
-			if (!Array.isArray(args)) {
-				throw new TypeError('args должен быть массивом');
-			}
-
-			// Получение функции из объекта window
-			const func = window[text];
-
-			// Проверка, является ли func функцией
-			if (typeof func !== 'function') {
-				throw new TypeError(`Функция ${text} не найдена`);
-			}
-
-			// Вызов функции с аргументами
-			return func(...args);
+		function callFunction(text, ...args) { //TODO: Сделать описание и сделать проверку функций и аргументов
+		  
+		  const result = text(...args);
+		  return result;
 		}
 
-		function sum (args){
-			return args;
+		function sum(a) {
+		  // Проверка, является ли a массивом
+		  if (!Array.isArray(a)) {
+			throw new TypeError("Argument must be an array");
+		  }
+
+		  // Суммирование элементов массива
+		  let total = 0;
+		  for (const num of a) {
+			total += num;
+		  }
+
+		  return total;
 		}
-		const text = 'sum';
-		const args = [1, 2];
 
-		const result = callFunction(text, args);
+		// Пример использования
+		const numbers = [1, 2, 3, 4, 5];
+		const result = callFunction(sum, numbers);
 
-		console.log(result); // 6
+		console.log(result); // Выведет 15
 
 	
 	</script>
