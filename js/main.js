@@ -32,88 +32,104 @@ const variables = {
 			* text: Текст функции без скобок.
 			* args: Массив аргументов, которые находились внутри скобок.
 */
-function openBrackets(text) { 
-    const result = {
-        text: "",
-        args: []
-    };
+function openBrackets(text) {
+  const result = {
+    text: "",
+    args: [],
+  };
 
-    let currentBracketValue = "";
-    let roundBracketCount = 0;
-    let squareBracketCount = 0;
+  let currentBracketValue = "";
+  let roundBracketCount = 0;
+  let squareBracketCount = 0;
+  let curlyBracketCount = 0;
+  let currentLevel = 0;
 
-    try { //Добавлен обработчик ошибок
-		for (let char of text) {
-			if (char === '(' && squareBracketCount === 0) {
-				roundBracketCount++;
-				if (roundBracketCount > 1) {
-					currentBracketValue += char;
-				}
-			} else if (char === ')' && squareBracketCount === 0) {
-				roundBracketCount--;
-				if (roundBracketCount > 0) {
-					currentBracketValue += char;
-				} else {
-					result.args.push(currentBracketValue.trim());
-					currentBracketValue = "";
-				}
-			} else if (char === '[' && roundBracketCount === 0) {
-				squareBracketCount++;
-				if (squareBracketCount > 1) {
-					currentBracketValue += char;
-				}
-			} else if (char === ']' && roundBracketCount === 0) {
-				squareBracketCount--;
-				if (squareBracketCount > 0) {
-					currentBracketValue += char;
-				} else {
-					result.args.push(currentBracketValue.trim());
-					currentBracketValue = "";
-				}
-			} else if (roundBracketCount === 0 && squareBracketCount === 0) {
-				result.text += char;
-			} else {
-				currentBracketValue += char;
-			}
-		}
-	} catch (TypeError){
-		result.text='0'; //Maybe wrong?
-	};
-	if (result.text === "") { //Проверка на то, что всё-таки текст функции есть
-        return openBrackets(result.args[0]);
-    };
-	result.text = result.text.replace(/ /g, "")
-    return result;
+  try {
+    for (let char of text) {
+      if (char === "(" && squareBracketCount === 0 && curlyBracketCount === 0) {
+        roundBracketCount++;
+        if (currentLevel === 0) {
+          currentBracketValue += char;
+        }
+        currentLevel++;
+      } else if (char === ")" && squareBracketCount === 0 && curlyBracketCount === 0) {
+        roundBracketCount--;
+        currentLevel--;
+        if (currentLevel === 0) {
+          if (roundBracketCount > 0) {
+            currentBracketValue += char;
+          } else {
+            if (currentBracketValue.trim() !== "") {
+              result.args.push(currentBracketValue.trim());
+            }
+            currentBracketValue = "";
+          }
+        }
+      } else if (char === "[" && roundBracketCount === 0 && curlyBracketCount === 0) {
+        squareBracketCount++;
+        if (currentLevel === 0) {
+          currentBracketValue += char;
+        }
+        currentLevel++;
+      } else if (char === "]" && roundBracketCount === 0 && curlyBracketCount === 0) {
+        squareBracketCount--;
+        currentLevel--;
+        if (currentLevel === 0) {
+          if (squareBracketCount > 0) {
+            currentBracketValue += char;
+          } else {
+            if (currentBracketValue.trim() !== "") {
+              result.args.push(currentBracketValue.trim());
+            }
+            currentBracketValue = "";
+          }
+        }
+      } else if (char === "{" && roundBracketCount === 0 && squareBracketCount === 0) {
+        curlyBracketCount++;
+        if (currentLevel === 0) {
+          // Не добавлять первую фигурную скобку
+          if (char !== "{") {
+            currentBracketValue += char;
+          }
+        }
+        currentLevel++;
+      } else if (char === "}" && roundBracketCount === 0 && squareBracketCount === 0) {
+        curlyBracketCount--;
+        currentLevel--;
+        if (currentLevel === 0) {
+          if (curlyBracketCount > 0) {
+            currentBracketValue += char;
+          } else {
+            // Разделить аргументы по символу \n
+            const args = currentBracketValue.trim().split(/\n/);
+            for (const arg of args) {
+              result.args.push(arg.trim());
+            }
+            currentBracketValue = "";
+          }
+        }
+      } else if (currentLevel === 0) {
+        result.text += char;
+      } else {
+        currentBracketValue += char;
+      }
+    }
+  } catch (TypeError) {
+    result.text = "0"; // Handle potential errors (optional)
+  }
+
+  return result;
 }
+
+
+
+
+
 
 function returnReq(req) {return (req)?1:0}; //Нужно для численного значения булевого типа данных
 
 
-function parser(_text, args) {
-	var a,b,c=0;
-	const oneArg = {
-		'!': (a) => (returnReq(!a)),
-		'not': (a) => (returnReq(!a))
-	};
-    
-	
-    // Если _text - числовое значение, возвращаем его
-    if (!isNaN(_text)) {
-        return parseFloat(_text);
-    } else {
-        // Если _text - оператор, выполняем соответствующую операцию
-        if (oneArg[_text]) {
-			a = parser(openBrackets(args[0]).text,openBrackets(args[0]).args);
-            return oneArg[_text](a);
-        } else if (twoArg[_text]) {
-			a = parser(openBrackets(args[0]).text,openBrackets(args[0]).args);
-			b = parser(openBrackets(args[1]).text,openBrackets(args[1]).args);
-            return twoArg[_text](a,b);
-        } 
-		// Если _text не числовое значение и не оператор, возвращаем его как есть
-		return _text;
-    }
-}
+
 
 /*
  Класс extensions
@@ -150,7 +166,7 @@ class extensions {
       for (const block of info.blocks) {
         //Регистрация команд
         const key = block.text.replace(/\s/g, ''); // Ключ без пробелов
-        this.commands.set(openBrackets(key).text, {
+        this.commands.set(openBrackets(key).text.toLowerCase(), {
           id: info.id,
           opcode: block.opcode,
           args: block.args,
@@ -170,11 +186,61 @@ class extensions {
   
   
 }
-const ext = new extensions();//Инициализация дополнений
+//window.ext = new extensions();//Инициализация дополнений
 /*Функция, которая вызывает функцию с названием text*/
 
+var ext = new extensions(); // Объявление глобальной переменной
+var globalVariable = 'Глобальная переменная';
 
-function callFunction(ext,text, args) {
+function exampleFunction() {
+    console.log(ext); // Можно использовать глобальную переменную внутри функции
+}
+
+function parser(_text) {
+	let bracketsText = openBrackets(_text).text.replace(/ /g, "").toLowerCase(), bracketsArgs = openBrackets(_text).args;
+	
+	/*var a,b,c=0;
+	const oneArg = {
+		'!': (a) => (returnReq(!a)),
+		'not': (a) => (returnReq(!a))
+	};
+    
+	
+    // Если _text - числовое значение, возвращаем его
+    if (!isNaN(_text)) {
+        return parseFloat(_text);
+    } else {
+        // Если _text - оператор, выполняем соответствующую операцию
+        if (oneArg[_text]) {
+			a = parser(openBrackets(args[0]).text,openBrackets(args[0]).args);
+            return oneArg[_text](a);
+        } else if (twoArg[_text]) {
+			a = parser(openBrackets(args[0]).text,openBrackets(args[0]).args);
+			b = parser(openBrackets(args[1]).text,openBrackets(args[1]).args);
+            return twoArg[_text](a,b);
+        } 
+		// Если _text не числовое значение и не оператор, возвращаем его как есть
+		return _text;
+    }*/
+	let funcVar = ext.commands.get(bracketsText);
+	console.log(bracketsText);
+	if (!isNaN(bracketsText)){
+		return parseFloat(bracketsText);
+	} else if (typeof funcVar !== 'undefined') {
+		for (let i = 0; i < bracketsArgs.length; i++) {
+			bracketsArgs[i] = parser(bracketsArgs[i]);
+		}
+		console.log(callFunction(funcVar.func,bracketsArgs));
+		return callFunction(funcVar.func,bracketsArgs);
+		//let func = 
+	};
+	
+	return bracketsText==""?"0f".toString():bracketsText;
+	
+}
+
+
+function callFunction(text, args) { //TODO: Сделать описание и сделать проверку функций и аргументов
 	//let func = {
 	//	id: text.id,
 	//	opcode: text.opcode,
@@ -326,37 +392,37 @@ class StringsExt {
     }
 
     joinStrings(firstString, secondString) {
-        return firstString + secondString;
+        return firstString.toString() + secondString.toString();
     }
 
     containsSubstring(mainString, subString) {
         return mainString.includes(subString) ? 1 : 0;
     }
 
-    convertToLowercase(inputString) {
-        return inputString.toLowerCase();
+    convertToLowercase(inputString="") {
+        return inputString.toString().toLowerCase();
     }
 
     convertToUppercase(inputString) {
-        return inputString.toUpperCase();
+        return inputString.toString().toUpperCase();
     }
 
     getCharacterAtIndex(index, inputString) {
-        if (index < 0 || index >= inputString.length) {
+        if (index < 0 || index >= inputString.toString().length) {
             throw new Error("Index out of bounds");
         }
-        return inputString.charAt(index);
+        return inputString.toString().charAt(index);
     }
 
     countSubstrings(substring, mainString) {
         if (!substring) {
             throw new Error("Empty substring provided");
         }
-        return mainString.split(substring).length - 1;
+        return mainString.toString().split(substring.toString()).length - 1;
     }
 
     indexOfSubstring(substring, mainString) {
-        return mainString.indexOf(substring);
+        return mainString.toString().indexOf(substring.toString());
     }
 
     getSubstringFromRange(startIndex, endIndex, inputString) {
@@ -791,9 +857,47 @@ class moduleReq {
 ext.register(moduleReq);//Регистрация нового модуля "Base"
 /*End Modules*/	
 
-const editTextElement = document.getElementById('editText');
+//const editTextElement = document.getElementById('editText');
 const submitButton = document.getElementById('submitButton');
 const outputElement = document.getElementById('output');
+const editTextElement = document.querySelector('textarea');
+
+var keys = new Map();
+//document.body.innerHTML = "Keys currently pressed: "
+window.addEventListener("keydown",
+    function(e){
+        keys.set(e.keyCode,e.key);
+        var keysArray = getNumberArray(keys);
+        //document.body.innerHTML = "Keys currently pressed:" + keysArray;
+		console.log(keys);
+		keys.delete(e.keyCode);
+        
+		
+        if(keysArray.toString() == "17,65"){
+            document.body.innerHTML += " Select all!"
+        }
+		
+    },
+false);
+
+
+window.addEventListener('keyup',
+    function(e){
+        keys.delete(e.keyCode);
+        //document.body.innerHTML = "Keys currently pressed: " + getNumberArray(keys);
+    },
+false);
+
+
+function getNumberArray(arr){
+    var newArr = new Array();
+    for(var i = 0; i < arr.length; i++){
+        if(typeof arr[i] == "number"){
+            newArr[newArr.length] = arr[i];
+        }
+    }
+    return newArr;
+}
 
 //При нажатии кнопки "submitButton"
 submitButton.addEventListener('click', function() { 
@@ -810,7 +914,7 @@ submitButton.addEventListener('click', function() {
 	console.log();
 	let textVar = openBrackets(editTextElement.value).text;
 	let args = openBrackets(editTextElement.value).args;
-	const result2 = callFunction(ext,ext.commands.get(textVar).func,args)
+	const result2 = callFunction(ext.commands.get(textVar).func,args)
 	myFunction(`Текст без скобок: ${result2}`);
 });
 
@@ -829,3 +933,5 @@ abc["b"]=45;
 
 console.log(result);
 console.log("Значения в parser:", parser(result.text,result.args));
+
+

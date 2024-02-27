@@ -29,15 +29,22 @@
 		  object-fit: contain;
 		  object-position: center;
 		}
+		textarea {
+			width: 500px;
+			height: 200px;
+			font-size: 16px;
+			padding: 10px;
+		}
 	</style>
 </head>
 <body>
 	
 	<!--Тест работы интерпритатора--> 
 	
-	<input type="text" id="editText" placeholder="Enter text">
+	<!--<input type="text" id="editText" placeholder="Enter text">-->
     <button id="submitButton">Submit</button> 
 	<div id="output" style="color:white"></div>
+	<textarea id="editText" rows="10" cols="50">Введите текст...</textarea>
     <script src="js/main.js"></script>
 	<!--Тест Canvas.--> 
 	<!--<div id="canvas-container">
