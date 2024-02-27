@@ -88,46 +88,6 @@ function openBrackets(text) {
 
 function returnReq(req) {return (req)?1:0}; //Нужно для численного значения булевого типа данных
 
-const twoArg = { //Операторы с двумя аргументами
-		//math
-        '+': (a,b) => (a+b), // Ваш код для операции сложения
-        '-': (a,b) => (a-b),
-		'*': (a,b) => (a*b),
-		'/': (a,b) => (a/b),
-		'**': (a,b) => (a**b),
-		'pow': (a,b) => (a**b),
-		//req
-		'>': (a,b) => (returnReq(a>b)),
-		'<': (a,b) => (returnReq(a<b)),
-		'==': (a,b) => (returnReq(a==b)),
-		'>=': (a,b) => (returnReq(a>=b)),
-		'<=': (a,b) => (returnReq(a<=b)),
-		'<>': (a,b) => (returnReq(a!=b)),
-		'!=': (a,b) => (returnReq(a!=b)),
-		'><': (a,b) => (returnReq(a!=b)),
-		'and': (a,b) => (returnReq(a&&b)),
-		'or': (a,b) => (returnReq(a||b)),
-		'nand': (a,b) => (returnReq(!(a&&b))),
-		'nor': (a,b) => (returnReq(!(a||b))),
-		'xor': (a,b) => (returnReq(a!==b)),
-		'xnor': (a,b) => (returnReq(a===b)),
-		//str
-		'join': (a,b) => (''+a+b),
-		'contains': (a,b) => (returnReq(a.includes(b))),
-		'identical': (a,b) => (returnReq(a===b)),
-		'to': (a,b) =>{
-			if (b == "uppercase") {
-				return (a.toUpperCase())
-			} else {
-				return (a.toLowerCase())
-			}
-		}
-		//easest
-		
-		
-		
-        // Добавьте другие операторы с их обработчиками
-    };
 
 function parser(_text, args) {
 	var a,b,c=0;
@@ -154,85 +114,6 @@ function parser(_text, args) {
 		return _text;
     }
 }
-/*
-const functionDictionary = {
-  add: (a, b) => a + b,
-  subtract: (a, b) => a - b,
-  multiply: (a, b) => a * b,
-  divide: (a, b) => a / b
-};
-
-// Вызов функции по ключу
-const result = functionDictionary.add(2, 3);
-console.log(result); // Вывод: 5
-*/
-/*
-const operationDictionary = {
-    "+": "math",
-    "-": "math",
-    "*": "math",
-    "/": "math",
-    "**": "math",
-    "pow": "math",
-    ">": "req",
-    "<": "req",
-    "==": "req",
-    "!=": "req",
-    ">=": "req",
-    "<=": "req",
-    "<>": "req",
-    "><": "req",
-    "and": "req",
-    "or": "req",
-    "nand": "req",
-    "nor": "req",
-    "xor": "req",
-    "xnor": "req",
-    "contains": "req",
-    "identical": "req",
-    "join": "str",
-    "=": "var",
-    "+=": "var",
-    "-=": "var",
-    "*=": "var",
-    "/=": "var",
-    "^=": "var",
-    "of": "exp",
-    "to": "exp",
-    "splitby": "exp",
-    "with": "exp"
-};
-const operationDictionaryExtended = {
-    "[lengthof": "math",
-    "[roundof": "math",
-    "[absof": "math",
-    "[floorof": "math",
-    "[sqrtof": "math",
-    "[ceiling": "math",
-    "[cosof": "math",
-    "[sinof": "math",
-    "[tanof": "math",
-    "[asinof": "math",
-    "[acosof": "math",
-    "[atanof": "math",
-    "[lnof": "math",
-    "[e^of": "math",
-    "[logof": "math",
-    "[randomo": "math",
-    "[truncof": "math",
-    "not": "req",
-    "!": "req",
-    "item#of": "list",
-    "lengthof": "list",
-    "contains": "list",
-    "item": "list"
-};
-*/
-/*// Пример использования словаря
-const operator = "with";
-console.log("Тип операции:", operationDictionary[operator]);*/
-
-
 
 /*
  Класс extensions
@@ -327,7 +208,8 @@ function callFunction(ext,text, args) {
 function isNotClassValid(clazz) {
   return !(clazz.prototype && clazz.prototype.getInfo && typeof clazz.prototype.getInfo === 'function');
 }
-/*Modules*/
+
+/*Start Base Modules*/
 class HelloWorld {
 	getInfo() {
 		return {
@@ -377,42 +259,113 @@ class HelloWorld {
 ext.register(HelloWorld);//Регистрация нового модуля "HelloWorld"
 
 class StringsExt {
+    static extInfo = {
+        id: "StringsExt",
+        name: "Strings Operations",
+        description: "Strings functions for operation",
+    };
+
+    static blocksInfo = [
+        {
+            text: '( ) join ( )',
+            opcode: 'joinStrings',
+            description: 'Возвращает конкатенацию строк a и b'
+        },
+        {
+            text: '( ) contains ( )',
+            opcode: 'containsSubstring',
+            description: 'Проверяет, содержит ли строка a подстроку b'
+        },
+        {
+            text: 'lower ( )',
+            opcode: 'convertToLowercase',
+            description: 'Преобразует строку a в нижний регистр'
+        },
+        {
+            text: 'upper ( )',
+            opcode: 'convertToUppercase',
+            description: 'Преобразует строку a в верхний регистр'
+        },
+        {
+            text: 'letter ( ) of ( )',
+            opcode: 'getCharacterAtIndex',
+            description: 'Возвращает символ строки b по индексу a'
+        },
+        {
+            text: 'count ( ) of ( )',
+            opcode: 'countSubstrings',
+            description: 'Возвращает количество подстрок a в строке b'
+        },
+        {
+            text: 'index ( ) of ( )',
+            opcode: 'indexOfSubstring',
+            description: 'Возвращает индекс первого вхождения подстроки a в строку b'
+        },
+        {
+            text: 'letters ( ) to ( ) of ( )',
+            opcode: 'getSubstringFromRange',
+            description: 'Возвращает подстроку c с индексами из диапазона [a..b]'
+        },
+        {
+            text: 'item ( ) split by ( ) of ( )',
+            opcode: 'getItemFromSplit',
+            description: 'Возвращает подстроку #a из разделения строки c подстрокой b'
+        },
+        {
+            text: 'replace ( ) with ( ) of ( )',
+            opcode: 'replaceSubstring',
+            description: 'Заменяет все вхождения подстроки a на подстроку b в строке c'
+        }
+    ];
+
     getInfo() {
-        return Object.assign(Object.assign({}, StringsExt.extInfo), { blocks: [...StringsExt.blocksInfo] });
+        return {
+            ...StringsExt.extInfo,
+            blocks: [...StringsExt.blocksInfo],
+        };
     }
+
     joinStrings(firstString, secondString) {
         return firstString + secondString;
     }
+
     containsSubstring(mainString, subString) {
         return mainString.includes(subString) ? 1 : 0;
     }
+
     convertToLowercase(inputString) {
         return inputString.toLowerCase();
     }
+
     convertToUppercase(inputString) {
         return inputString.toUpperCase();
     }
+
     getCharacterAtIndex(index, inputString) {
         if (index < 0 || index >= inputString.length) {
             throw new Error("Index out of bounds");
         }
         return inputString.charAt(index);
     }
+
     countSubstrings(substring, mainString) {
         if (!substring) {
             throw new Error("Empty substring provided");
         }
         return mainString.split(substring).length - 1;
     }
+
     indexOfSubstring(substring, mainString) {
         return mainString.indexOf(substring);
     }
+
     getSubstringFromRange(startIndex, endIndex, inputString) {
         if (startIndex < 0 || endIndex >= inputString.length || startIndex > endIndex) {
             throw new Error("Invalid range");
         }
         return inputString.substring(startIndex, endIndex + 1);
     }
+
     getItemFromSplit(index, separator, inputString) {
         const parts = inputString.split(separator);
         if (index < 0 || index >= parts.length) {
@@ -420,67 +373,12 @@ class StringsExt {
         }
         return parts[index];
     }
+
     replaceSubstring(oldSubstring, newSubstring, inputString) {
         return inputString.split(oldSubstring).join(newSubstring);
     }
+
 }
-StringsExt.extInfo = {
-    id: "StringsExt",
-    name: "Strings Operations",
-    description: "Strings functions for operation",
-};
-StringsExt.blocksInfo = [
-    {
-        text: '( ) join ( )',
-        opcode: 'joinStrings',
-        description: 'Возвращает конкатенацию строк a и b'
-    },
-    {
-        text: '( ) contains ( )',
-        opcode: 'containsSubstring',
-        description: 'Проверяет, содержит ли строка a подстроку b'
-    },
-    {
-        text: 'lower ( )',
-        opcode: 'convertToLowercase',
-        description: 'Преобразует строку a в нижний регистр'
-    },
-    {
-        text: 'upper ( )',
-        opcode: 'convertToUppercase',
-        description: 'Преобразует строку a в верхний регистр'
-    },
-    {
-        text: 'letter ( ) of ( )',
-        opcode: 'getCharacterAtIndex',
-        description: 'Возвращает символ строки b по индексу a'
-    },
-    {
-        text: 'count ( ) of ( )',
-        opcode: 'countSubstrings',
-        description: 'Возвращает количество подстрок a в строке b'
-    },
-    {
-        text: 'index ( ) of ( )',
-        opcode: 'indexOfSubstring',
-        description: 'Возвращает индекс первого вхождения подстроки a в строку b'
-    },
-    {
-        text: 'letters ( ) to ( ) of ( )',
-        opcode: 'getSubstringFromRange',
-        description: 'Возвращает подстроку c с индексами из диапазона [a..b]'
-    },
-    {
-        text: 'item ( ) split by ( ) of ( )',
-        opcode: 'getItemFromSplit',
-        description: 'Возвращает подстроку #a из разделения строки c подстрокой b'
-    },
-    {
-        text: 'replace ( ) with ( ) of ( )',
-        opcode: 'replaceSubstring',
-        description: 'Заменяет все вхождения подстроки a на подстроку b в строке c'
-    }
-];
 ext.register(StringsExt);
 
 class PenModule {
@@ -675,6 +573,223 @@ class PenModule {
     }    
   }
 ext.register(PenModule);
+
+class moduleReq {
+	getInfo() {
+		return {
+			id: 'moduleReq', //Название класса, возможно нахуй не понадобится это
+			name: 'Req operations', //Название модуля
+			//color: '#ff0000', // pure red
+			//docsURI: 'https://ya.ru', //Документация к модулю
+			description: 'Basic functions for operation', //Описание модуля
+			blocks: [
+				{
+					text: 'not ()',
+					opcode: 'NotFunc',
+					//type: 'reporter', //Пока все блоки имеют reporter для IDE
+					description: '!(req)'
+				},
+				{
+					text: '!()',
+					opcode: 'NotFunc',
+					//type: 'reporter', //Пока все блоки имеют reporter для IDE
+					description: '!(req)'
+				},
+					{
+					text: 'mod ( ) of ( )',
+					opcode: 'ModFunc',
+					//type: 'reporter',
+					description: 'Сравнение ONE с TWO',
+				},
+				{
+					text: 'trunc with digits ( ) of ( )',
+					opcode: 'TruncWithDigits',
+					//type: 'reporter',
+					description: 'Округление числа до знака запятой'
+				},
+				{
+					text: '( ) < ( )',
+					opcode: 'Less',
+					//type: 'reporter',
+					description: '(a) меньше (b)?'
+				},
+				{
+					text: '( ) > ( )',
+					opcode: 'More',
+					//type: 'reporter',
+					description: '(a) больше (b)?'
+				},
+				{
+					text: '( ) == ( )',
+					opcode: 'Equal',
+					//type: 'reporter',
+					description: '(a) равно (b)?'
+				},
+				{
+					text: '( ) != ( )',
+					opcode: 'NotEqual',
+					//type: 'reporter',
+					description: '(a) не равно (b)?'
+				},
+				{
+					text: '( ) <> ( )',
+					opcode: 'NotEqual',
+					//type: 'reporter',
+					description: '(a) не равно (b)?'
+				},
+				{
+					text: '( ) >< ( )',
+					opcode: 'NotEqual',
+					//type: 'reporter',
+					description: '(a) не равно (b)?'
+				},
+				{
+					text: '( ) <= ( )',
+					opcode: 'LessOrEqual',
+					//type: 'reporter',
+					description: '(a) нменьше или  равно (b)?'
+				},
+				{
+					text: '( ) >= ( )',
+					opcode: 'MorOrEqual',
+					//type: 'reporter',
+					description: '(a) больше или равно (b)?'
+				},
+				{
+					text: '( ) and ( )',
+					opcode: 'and_block',
+					//type: 'reporter',
+					description: '(a) и (b) верно?'
+				},
+				{
+					text: '( ) or ( )',
+					opcode: 'or_block',
+					//type: 'reporter',
+					description: '(a) или (b) верно?'
+				},
+				{
+					text: '( ) nand ( )',
+					opcode: 'nand_block',
+					//type: 'reporter',
+					description: '!((a) и (b) верно?)'
+				},
+				{
+					text: '( ) nor ( )',
+					opcode: 'nor_block',
+					//type: 'reporter',
+					description: '!((a) или (b) верно?)'
+				},
+				{
+					text: '( ) xor ( )',
+					opcode: 'xor_block',
+					//type: 'reporter',
+					description: '(a)  не равно (b)?'
+				},
+				{
+					text: '( ) xnor ( )',
+					opcode: 'xnor_block',
+					//type: 'reporter',
+					description: '(a) равно (b)?'
+				},
+				{
+					text: '( ) indetical ( )',
+					opcode: 'Equal',
+					//type: 'reporter',
+					description: '(a) равно (b)?'
+				},
+				
+
+
+			]
+		};
+	}
+	/*
+	Функции модуля
+	*/
+	
+	NotFunc(a) {
+		//a = 1 или 0;
+		if (a == 1){
+			return 0;	
+		};
+		return 1;	
+	};
+	
+	ModFunc(a,b){
+		return (b%a); //mod (a) of (b) 
+	};
+
+	TruncWithDigits(a,b) {
+		  let n = Math.floor(cast.toNumber(b));
+		  if (n >= 1) {
+			n = 10 ** n;
+			if (n !== Infinity) {
+			  return Math.trunc(cast.toNumber(a) * n) / n;
+			}
+			return cast.toNumber(a);
+		  }
+		  return Math.trunc(cast.toNumber(a));
+	};
+	
+	Less(a,b) {
+		//Условные операторы должны возвращать 1 или 0 вместо true и false
+		return (a<b?1:0); 
+	};
+
+	More(a,b) {
+		//Условные операторы должны возвращать 1 или 0 вместо true и false
+		return (a>b?1:0); 
+	};
+	
+	Equal(a,b){
+		//Условные операторы должны возвращать 1 или 0 вместо true и false
+		return(a==b?1:0);
+	};
+
+	NotEqual(a,b) {
+		//Условные операторы должны возвращать 1 или 0 вместо true и false
+		return(a!=b?1:0);
+	};
+
+	LessOrEqual(a,b) {
+		//Условные операторы должны возвращать 1 или 0 вместо true и false
+		return (a<=b?1:0); 
+	};
+
+	MoreOrEqual(a,b) {
+		//Условные операторы должны возвращать 1 или 0 вместо true и false
+		return (a>=b?1:0); 
+	};
+
+	and_block(a,b) {
+		//a,b = 1 или 0;
+		return(a&&b?1:0);
+	};
+
+	or_block(a,b) {
+		//a,b = 1 или 0;
+		return(a||b?1:0);
+	};
+
+	nand_block( a, b ) {
+      return (!(cast.toBoolean(a) && cast.toBoolean(b))?1:0);
+    };
+
+	nor_block(	a, b ) {
+      return (!(cast.toBoolean(a) || cast.toBoolean(b))?1:0);
+
+    };
+
+    xor_block( a, b ) {
+      return (cast.toBoolean(a) !== cast.toBoolean(b)?1:0);
+    };
+
+    xnor_block( a, b ) {
+      return (cast.toBoolean(a) === cast.toBoolean(b)?1:0);
+    };
+};
+ext.register(moduleReq);//Регистрация нового модуля "Base"
+/*End Modules*/	
 
 const editTextElement = document.getElementById('editText');
 const submitButton = document.getElementById('submitButton');

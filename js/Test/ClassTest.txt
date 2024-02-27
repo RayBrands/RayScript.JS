@@ -1,24 +1,24 @@
 /*Modules*/
-class Base {
+class moduleReq {
 	getInfo() {
 		return {
-			id: 'Base', //Название класса, возможно нахуй не понадобится это
-			name: 'Base Operations', //Название модуля
+			id: 'moduleReq', //Название класса, возможно нахуй не понадобится это
+			name: 'Req operations', //Название модуля
 			//color: '#ff0000', // pure red
 			//docsURI: 'https://ya.ru', //Документация к модулю
 			description: 'Basic functions for operation', //Описание модуля
 			blocks: [
 				{
-					text: '[ ] of ()',
-					opcode: 'operatorOf',
+					text: 'not ()',
+					opcode: 'notFunc',
 					//type: 'reporter', //Пока все блоки имеют reporter для IDE
-					description: 'Operator "of"'
+					description: '!(req)'
 				},
 				{
-					text: '( ) + ( )',
-					opcode: 'add',
+					text: 'trunc with digits ( ) of ( )',
+					opcode: 'truncWithDigits',
 					//type: 'reporter',
-					description: 'Возвращает сумму a и b'
+					description: 'Округление числа до знака запятой'
 				},
 				{
 					text: '( ) < ( )',
@@ -39,23 +39,24 @@ class Base {
 	Функции модуля
 	*/
 	
-	operatorOf(a,b) {
-		/*TODO: Реализовать оператор OF
-		a - является string, название операции
-		b - в основном число либо текст (Для некоторых операций нужно сделать проверку)
-		*/
-		const functionDictionary = {
-		  length: (a, b) => ,
-		  subtract: (a, b) => a - b,
-		  multiply: (a, b) => a * b,
-		  divide: (a, b) => a / b
+	notFunc(a) {
+		//a = 1 или 0;
+		if (a == 1){
+			return 0;	
 		};
-		return functionDictionary;
+		return 1;	
 	};
 	
-	add(a,b) {
-		//a,b уже имеют тип данных, которым и являются, но нужно всё-равно сделать проверку по типу данных
-		return a+b; 
+	truncWithDigits(a,b) {
+		  let n = Math.floor(cast.toNumber(b));
+		  if (n >= 1) {
+			n = 10 ** n;
+			if (n !== Infinity) {
+			  return Math.trunc(cast.toNumber(a) * n) / n;
+			}
+			return cast.toNumber(a);
+		  }
+		  return Math.trunc(cast.toNumber(a));
 	};
 	
 	less(a,b) {
