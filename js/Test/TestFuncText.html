@@ -29,24 +29,45 @@
 		  object-fit: contain;
 		  object-position: center;
 		}
-		textarea {
-			width: 500px;
-			height: 200px;
-			font-size: 16px;
-			padding: 10px;
-		}
 	</style>
 </head>
 <body>
 	
 	<!--Тест работы интерпритатора--> 
 	
-	<!--<input type="text" id="editText" placeholder="Enter text">-->
-    
-	<textarea id="editText" rows="10" cols="50">Введите текст...</textarea>
-	<button id="submitButton">Start</button> 
+	<input type="text" id="editText" placeholder="Enter text">
+    <button id="submitButton">Submit</button> 
 	<div id="output" style="color:white"></div>
-    <script src="js/main.js"></script>
+    <script>
+		function callFunction(text, ...args) { //TODO: Сделать описание и сделать проверку функций и аргументов
+		  
+		  const result = text(...args);
+		  return result;
+		}
+
+		function sum(a) {
+		  // Проверка, является ли a массивом
+		  if (!Array.isArray(a)) {
+			throw new TypeError("Argument must be an array");
+		  }
+
+		  // Суммирование элементов массива
+		  let total = 0;
+		  for (const num of a) {
+			total += num;
+		  }
+
+		  return total;
+		}
+
+		// Пример использования
+		const numbers = [1, 2, 3, 4, 5];
+		const result = callFunction(sum, numbers);
+
+		console.log(result); // Выведет 15
+
+	
+	</script>
 	<!--Тест Canvas.--> 
 	<!--<div id="canvas-container">
 		<canvas id="canvas" width="50" height="100" style="transform: scale(1);"></canvas>
