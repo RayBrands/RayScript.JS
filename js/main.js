@@ -1,5 +1,3 @@
-//old main
-
 //Работа с переменными
 /*
 
@@ -7,7 +5,6 @@
 const variablesDict = {}; // Хранение переменных проекта в словаре (Почему нет)
 
 //справочник(-функция) для работы с переменными
-//#TODO: Сделать работу с модулями
 const variables = { 
 	setValue: function (_name,_value) { // Функция для установки значения переменной
 		variablesDict[_name] = _value;
@@ -30,100 +27,101 @@ const variables = {
     Returns:
         result: Объект с двумя полями:
 			* text: Текст функции без скобок.
-			* args: Массив аргументов, которые находились внутри скобок.
+			* args: Массив аргументов, которые находились внутри скобок + возможен массив из команд внутри {}
+			
 */
-function openBrackets(text) {
-  const result = {
-    text: "",
-    args: [],
-  };
+function openBrackets(_text) {
+	let result = {
+		text: "",
+		args: [],
+	};
 
-  let currentBracketValue = "";
-  let roundBracketCount = 0;
-  let squareBracketCount = 0;
-  let curlyBracketCount = 0;
-  let currentLevel = 0;
-
-  try {
-    for (let char of text) {
-      // Check if the first character inside brackets needs to be included
-      const includeFirstChar = currentLevel > 0 && currentBracketValue === "";
-
-      if (char === "(" && squareBracketCount === 0 && curlyBracketCount === 0) {
-        roundBracketCount++;
-        if (includeFirstChar) {
-          currentBracketValue += char;
-        }
-        currentLevel++;
-      } else if (char === ")" && squareBracketCount === 0 && curlyBracketCount === 0) {
-        roundBracketCount--;
-        currentLevel--;
-        if (currentLevel === 0) {
-          if (roundBracketCount > 0) {
-            currentBracketValue += char;
-          } else {
-            if (currentBracketValue.trim() !== "") {
-              result.args.push(currentBracketValue.trim());
-            }
-            currentBracketValue = "";
-          }
-        }
-      } else if (char === "[" && roundBracketCount === 0 && curlyBracketCount === 0) {
-        squareBracketCount++;
-        if (includeFirstChar) {
-          currentBracketValue += char;
-        }
-        currentLevel++;
-      } else if (char === "]" && roundBracketCount === 0 && curlyBracketCount === 0) {
-        squareBracketCount--;
-        currentLevel--;
-        if (currentLevel === 0) {
-          if (squareBracketCount > 0) {
-            currentBracketValue += char;
-          } else {
-            if (currentBracketValue.trim() !== "") {
-              result.args.push(currentBracketValue.trim());
-            }
-            currentBracketValue = "";
-          }
-        }
-      } else if (char === "{" && roundBracketCount === 0 && squareBracketCount === 0) {
-        curlyBracketCount++;
-        if (currentLevel === 0) {
-          // Skip the first curly bracket
-        } else {
-          currentBracketValue += char;
-        }
-        currentLevel++;
-      } else if (char === "}" && roundBracketCount === 0 && squareBracketCount === 0) {
-        curlyBracketCount--;
-        currentLevel--;
-        if (currentLevel === 0) {
-          if (curlyBracketCount > 0) {
-            currentBracketValue += char;
-          } else {
-            // Split and push arguments after removing the closing curly bracket
-            const args = currentBracketValue.trim().split(/\n/);
-            const nestedArray = [];
-            for (const arg of args) {
-              nestedArray.push(arg.trim());
-            }
-            result.args.push(nestedArray);
-            currentBracketValue = "";
-          }
-        }
-      } else if (currentLevel === 0) {
-        result.text += char;
-      } else {
-        currentBracketValue += char;
-      }
-    }
-  } catch (TypeError) {
-    result.text = "0"; // Handle potential errors (optional)
-  }
-
-  return result;
-}
+	let argsBracketCount = 0; //Кол-во скобок для аргументов
+	let bracketArg = "";
+	let skipArgBracketSymbol=1;
+	let bracketCommand = "";
+	let commandBracketCount = 0;
+	let skipCommandBracketSymbol = 1;
+	let commandArray = [];
+	let firstBracketType = ""; //Определяет какой тип скобок появилась первой
+	
+	let argCharDict = {
+		  "(": 1,
+		  "[": 1,
+		  ")": -1,
+		  "]": -1,
+	};
+		
+	let commandCharDict = {
+	  "{": 1,
+	  "}": -1,
+	};
+	
+	for (let i = 0; i < _text.length; i++) {
+		const char = _text[i];
+		
+		argsBracketCount += char in argCharDict ? argCharDict[char] : 0;
+		commandBracketCount += char in commandCharDict ? commandCharDict[char] : 0;
+		
+		//Позволяет сохранить другой тип скобок внутри других скобок
+		if ((argsBracketCount === 1)&&(commandBracketCount===0)){
+			firstBracketType = "args"
+		} else if ((argsBracketCount === 0)&&(commandBracketCount===1)){
+			firstBracketType = "command"
+		}
+		
+		//TODO: сделать отдельные функции для конкретных операций
+		switch (firstBracketType) {
+			//Первая скобка - аргумента
+			case "args":
+				if (argsBracketCount >= 1) { 
+					if (skipArgBracketSymbol === 0) {
+						bracketArg += char;
+						//console.log(char);
+					} else { //первая скобка аргумента игнорируется
+						skipArgBracketSymbol = 0;
+					}
+				} else if (skipArgBracketSymbol === 0){ //последняя скобка аргумента
+					result.args.push(bracketArg);
+					bracketArg = "";
+					skipArgBracketSymbol = 1;
+					firstBracketType = "" 
+				}
+				break;
+			//Первая скобка - команд
+			case "command":
+				if (commandBracketCount >= 1){
+					if (skipCommandBracketSymbol === 0) {
+						if ((char === "\n")&&(commandBracketCount == 1)) {
+							//TODO: сделать проверку пустого значения
+							if (bracketCommand.trim() != ''){
+								commandArray.push(bracketCommand.trim());
+							}
+							bracketCommand = "";
+						} else {
+							bracketCommand += char;
+							//console.log(char);
+						}
+					} else { //первая командная скобка игнорируется
+						skipCommandBracketSymbol = 0;
+					}
+				} else if (skipCommandBracketSymbol === 0) {
+					if (bracketCommand.trim() != ''){
+								commandArray.push(bracketCommand.trim());
+					}
+					result.args.push(commandArray);
+					commandArray = [];
+					firstBracketType = ""
+				}
+				break;
+			//Скобок нет
+			default:
+				result.text += char;
+		}
+	};
+	result.text.trim();
+	return result;
+};
 
 
 
@@ -133,16 +131,10 @@ function openBrackets(text) {
 
 function returnReq(req) {return (req)?1:0}; //Нужно для численного значения булевого типа данных
 
-
-
-
 /*
  Класс extensions
- 
  Принимает модуль, добавляет команды в commands
- 
  Добавляет значения блоков в blocks (Распределяя по классам)
- 
  modules содержит все подключённые модули а также их описание, color и ссылка на документацию
 */
 
@@ -191,19 +183,13 @@ class extensions {
   
   
 }
-//window.ext = new extensions();//Инициализация дополнений
-/*Функция, которая вызывает функцию с названием text*/
-
-var ext = new extensions(); // Объявление глобальной переменной
-var globalVariable = 'Глобальная переменная';
-
-function exampleFunction() {
-    console.log(ext); // Можно использовать глобальную переменную внутри функции
-}
-
-
+var ext = new extensions(); //Инициализация дополнений
 
 function parser(_text) {
+	/*
+	TODO:
+	1)Сделать поддержку переменных
+	*/
 	//console.log ('parser text = ', _text);
 	let bracketsText = openBrackets(_text).text, bracketsArgs = openBrackets(_text).args;
 	function hasNestedArray(array) { //Проверка того, что в массиве нет массива
@@ -227,8 +213,8 @@ function parser(_text) {
 }
 
 
-function callFunction(text, ...args) { //TODO: Сделать описание и сделать проверку функций и аргументов
-	
+function callFunction(text, ...args) { 
+	//TODO: Сделать описание и сделать проверку функций и аргументов, представленных внизу
 	const result = text(...args);
 	return result;
 }
@@ -267,55 +253,7 @@ function isNotClassValid(clazz) {
 }
 
 /*Start Base Modules*/
-class HelloWorld {
-	getInfo() {
-		return {
-			id: 'HelloWorld',
-			name: 'It works!',
-			color: '#ff0000', // pure red
-			docsURI: 'https://ya.ru', //Документация к модулю
-			description: 'Описание модуля', //Описание модуля
-			blocks: [
-				{
-					text: 'Hello !(var)',
-					opcode: 'hello',
-					type: 'reporter',
-					description: 'Описание блока'
-				},
-				{
-					text: 'world !',
-					opcode: 'world',
-					type: 'reporter',
-					description: 'возвращает значение world!'
-				},
-				{
-					text: '[ONE] strictly equals [TWO]',
-					opcode: 'strictlyEquals',
-					type: 'boolean',
-					description: 'Сравнение ONE с TWO',
-				}
-			]
-		};
-	}
-	//Функции модуля
-	hello() {
-		return 'hello';
-	};
-	world() {
-		return 'world';
-	};
-	strictlyEquals(a,b) {
-		console.log(a);
-		console.log("next:")
-		let clazz = (new HelloWorld)
-		console.log(clazz.hello()); //Вызов функции внутри класса
-		return (a===b?1:0);
-		//return args[0] === args[1];
-	};
-};
-ext.register(HelloWorld);//Регистрация нового модуля "HelloWorld"
-
-class baseBlocks{
+class baseModule{
 	getInfo() {
 		return {
 			id: 'baseBlocks',
@@ -328,13 +266,13 @@ class baseBlocks{
 					text: 'rys',
 					opcode: 'rys',
 					//type: 'reporter',
-					description: 'Выполнение основного кода'
+					description: 'Выполнение основного кода',
 				},
 				{
 					text: '+',
 					opcode: 'summ',
 					//type: 'reporter',
-					description: 'Выполнение основного кода'
+					description: 'сумма a и b',
 				},
 			]
 		}
@@ -361,8 +299,245 @@ class baseBlocks{
 		return args[0]+args[1];
 	}
 }
-ext.register(baseBlocks);
+ext.register(baseModule);
 
+class Base {
+	getInfo() {
+		return {
+			id: 'Base', //Название класса, возможно нахуй не понадобится это
+			name: 'Base Operations', //Название модуля
+			//color: '#ff0000', // pure red
+			//docsURI: 'https://ya.ru', //Документация к модулю
+			description: 'Basic functions for operation', //Описание модуля
+			blocks: [
+				  {
+					text: '( ) + ( )',
+					opcode: 'add',
+					description: 'Возвращает сумму двух чисел'
+				  },
+				  {
+					text: '( ) - ( )',
+					opcode: 'subtract',
+					description: 'Возвращает разность двух чисел'
+				  },
+				  {
+					text: '( ) * ( )',
+					opcode: 'multiply',
+					description: 'Возвращает произведение двух чисел'
+				  },
+				  {
+					text: '( ) / ( )',
+					opcode: 'divide',
+					description: 'Возвращает частное двух чисел'
+				  },
+				  {
+					text: 'length of ( )',
+					opcode: 'length',
+					description: 'Возвращает длину строки или количество цифр в числе'
+				  },
+				  {
+					text: 'round ( )',
+					opcode: 'round',
+					description: 'Округляет число до ближайшего целого'
+				  },
+				  {
+					text: 'abs ( )',
+					opcode: 'abs',
+					description: 'Возвращает абсолютное значение числа'
+				  },
+				  {
+					text: 'floor ( )',
+					opcode: 'floor',
+					description: 'Округляет число в меньшую сторону'
+				  },
+				  {
+					text: 'sqrt ( )',
+					opcode: 'sqrt',
+					description: 'Возвращает квадратный корень числа'
+				  },
+				  {
+					text: 'ceil ( )',
+					opcode: 'ceil',
+					description: 'Округляет число в большую сторону'
+				  },
+				  {
+					text: 'cos ( )',
+					opcode: 'cos',
+					description: 'Возвращает косинус угла в радианах'
+				  },
+				  {
+					text: 'sin ( )',
+					opcode: 'sin',
+					description: 'Возвращает синус угла в радианах'
+				  },
+				  {
+					text: 'tan ( )',
+					opcode: 'tan',
+					description: 'Возвращает тангенс угла в радианах'
+				  },
+				  {
+					text: 'asin ( )',
+					opcode: 'asin',
+					description: 'Возвращает арксинус числа'
+				  },
+				  {
+					text: 'acos ( )',
+					opcode: 'acos',
+					description: 'Возвращает арккосинус числа'
+				  },
+				  {
+					text: 'atan ( )',
+					opcode: 'atan',
+					description: 'Возвращает арктангенс числа'
+				  },
+				  {
+					text: 'ln ( )',
+					opcode: 'ln',
+					description: 'Возвращает натуральный логарифм числа'
+				  },
+				  {
+					text: 'e^ ( )',
+					opcode: 'exp',
+					description: 'Возводит число e в степень аргумента'
+				  },
+				  {
+					text: 'log ( )',
+					opcode: 'log',
+					description: 'Возвращает десятичный логарифм числа'
+				  },
+				  {
+					text: 'random up to ( )',
+					opcode: 'random',
+					description: 'Генерирует случайное число от 0 до указанного значения'
+				  },
+				  {
+					text: 'trunc ( )',
+					opcode: 'trunc',
+					description: 'Отбрасывает дробную часть числа, оставляя целую'
+				  },
+				  {
+					text: 'ln ( )',
+					opcode: 'ln',
+					description: 'Возвращает натуральный логарифм числа (основание e)'
+				  },
+				  {
+					text: 'e^ ( )',
+					opcode: 'exp',
+					description: 'Возводит число e в степень аргумента, e^a'
+				  },
+				  {
+					text: 'log ( )',
+					opcode: 'log10',
+					description: 'Возвращает десятичный логарифм числа (основание 10)'
+				  },
+				  {
+					text: '() pow ()',
+					opcode: 'power',
+					description: 'Возводит число a в степень b'
+				  },
+				  {
+					text: 'random up to ( )',
+					opcode: 'random',
+					description: 'Генерирует случайное число от 0 до a (не включая a)'
+				  },
+				  {
+					text: 'trunc ( )',
+					opcode: 'trunc',
+					description: 'Отбрасывает дробную часть числа, оставляя только целую часть'
+				  }
+			],
+		};
+	};
+	
+        // Арифметические операции
+        add(args) {
+          return args[0] + args[1];
+        }
+        subtract(args) {
+          return args[0] - args[1];
+        }
+        multiply(args) {
+          return args[0] * args[1];
+        }
+        divide(args) {
+          if (args[1] === 0) {
+            throw new Error("Деление на ноль");
+          }
+          return args[0] / args[1];
+        }
+		power(args) {
+          return args[0] ** args[1];
+        }
+      
+        // Функции округления
+        floor(args) {
+          return Math.floor(args[0]);
+        }
+        ceil(args) {
+          return Math.ceil(args[0]);
+        }
+        round(args) {
+          return Math.round(args[0]);
+        }
+        trunc(args) {
+          return Math.trunc(args[0]);
+        }
+      
+        // Тригонометрические функции
+        sin(args) {
+          return Math.sin(args[0]);
+        }
+        cos(args) {
+          return Math.cos(args[0]);
+        }
+        tan(args) {
+          return Math.tan(args[0]);
+        }
+        asin(args) {
+          return Math.asin(args[0]);
+        }
+        acos(args) {
+          return Math.acos(args[0]);
+        }
+        atan(args) {
+          return Math.atan(args[0]);
+        }
+      
+        // Логарифмические и экспоненциальные функции
+        ln(args) {
+          return Math.log(args[0]);
+        }
+        exp(args) {
+          return Math.exp(args[0]);
+        }
+        log10(args) {
+          return Math.log10(args[0]);
+        }
+      
+        // Возведение в степень и корень
+        sqrt(args) {
+          return Math.sqrt(args[0]);
+        }
+        pow(args) {
+          return Math.pow(args[0], args[1]);
+        }
+      
+        // Другие математические функции
+        abs(args) {
+          return Math.abs(args[0]);
+        }
+        random(args) {
+          return Math.random() * (args[0] - 0) + 0; // Генерация случайного числа от 0 до args[0]
+        }
+      
+        // Дополнительная функция для демонстрации обработки строк
+        length(args) {
+          return String(args[0]).length; // Преобразует в строку и возвращает длину
+        }
+};
+ext.register(Base);
+
+//TODO: Переписать данные модули из-за другой работы функции вызова команд и передачи в них аргументов
 class StringsExt {
     static extInfo = {
         id: "StringsExt",
