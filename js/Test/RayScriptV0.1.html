@@ -1,4 +1,53 @@
-//Работа с переменными
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<title>RayScript.JS</title>
+	<style>
+		body{
+			background-color: black;
+		}
+		#canvas-container {
+		  position: absolute;
+		  top: 0;
+		  left: 0;
+		  width: 100%;
+		  height: 100%;
+		  overflow: hidden;
+		  background-color: black;
+		}
+
+		#canvas {
+		  width: 100%;
+		  height: 100%;
+		  image-rendering: pixelated;
+		  margin: 0 auto;
+		  max-width: 100vw;
+		  max-height: 100vh;
+
+		  object-fit: contain;
+		  object-position: center;
+		}
+		textarea {
+			width: 500px;
+			height: 200px;
+			font-size: 16px;
+			padding: 10px;
+		}
+	</style>
+</head>
+<body>
+	
+	<!--Тест работы интерпритатора--> 
+	
+	<!--<input type="text" id="editText" placeholder="Enter text">-->
+    
+	<textarea id="editText" rows="10" cols="50">Включите JavaScript для вашего браузера, иначе RayScript превращается в ленивого котика :(</textarea>
+	<button id="submitButton">Start</button> 
+	<div id="output" style="color:white"></div>
+    <script>
+	//Работа с переменными
 /*
 
 */
@@ -1053,3 +1102,33 @@ function myFunction(text) {
     // Ваш код, использующий текст из editText
     outputElement.innerHTML = 'Program returned: ' + text;
 }
+editTextElement.value=`rys {
+	if (!((coins)isvar)){
+	  (coins) = (0)
+	  (upCost) = (10)
+	  (coinsPerClick) = (1)
+	}
+	if ((upCost)<=(coins)){
+		(coins) -= (upCost)
+		(coinsPerClick) += (1)
+		(upCost) = (round((upCost)*(1.5)))
+		(Вы купили улучшение! Теперь +coinsPerClick = )join(coinsPerClick)
+	} else {
+		(coins) += ((coinsPerClick))
+		(Всего coins: )join((coins)join((, до следующего улучшения: )join(upCost)))
+	}
+}`
+	</script>
+	<!--Тест Canvas.--> 
+	<!--<div id="canvas-container">
+		<canvas id="canvas" width="50" height="100" style="transform: scale(1);"></canvas>
+	</div>
+	<script src="js/CanvasWorkTest.js"></script>-->
+	
+	<!--Тест вставки файла--> <!--<input type="file" id="fileInput" />-->
+	
+	
+
+
+</body>
+</html>
