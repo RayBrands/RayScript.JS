@@ -4,24 +4,16 @@
 */
 const variablesDict = {}; // Хранение переменных проекта в словаре (Почему нет)
 
-//справочник(-функция) для работы с переменными
-const variables = { 
-	setValue: function (_name,_value) { // Функция для установки значения переменной
-		variablesDict[_name] = _value;
-		return _value; 
-	},
-	getValue: function (_name){ // Функция для получения значения переменной
-		return variablesDict[_name] ?? 0; //Возвращает значение Zero если нету такой переменной
-	}
-};
-function setVarValue(_name,_value){
-	variablesDict[_name] = _value;
-	return _value;
+const variablesMap = new Map();
+function setVarValue(_name, _value) {
+  variablesMap.set(_name, _value);
+  return _value;
 }
-function getVarValue(_name){
-	return variablesDict[_name] ?? 0;
+function getVarValue(_name) {
+  return variablesMap.get(_name) ?? 0;
 }
 
+var returnValue = 0; //Кол-во return в функции (Для работы с return (return abc))
 
 /*
     Функция принимает на вход строку, 
@@ -38,10 +30,23 @@ function getVarValue(_name){
 			
 	TODO: сделать квадратные скобки значением массива
 */
+var argCharDict = {
+		"(": 1,
+		"[": 1,
+		")": -1,
+		"]": -1,
+};
+
+var commandCharDict = {
+		"{": 1,
+		"}": -1,
+};
+
 function openBrackets(_text) {
 	let result = {
 		text: "",
 		args: [],
+		type: "", //str(str,var,float),func,funcCommands
 	};
 
 	let argsBracketCount = 0; //Кол-во скобок для аргументов
@@ -53,23 +58,11 @@ function openBrackets(_text) {
 	let commandArray = [];
 	let firstBracketType = ""; //Определяет какой тип скобок появилась первой
 	
-	let argCharDict = {
-		"(": 1,
-		"[": 1,
-		")": -1,
-		"]": -1,
-	};
-		
-	let commandCharDict = {
-		"{": 1,
-		"}": -1,
-	};
-	
 	for (let i = 0; i < _text.length; i++) {
 		const char = _text[i];
 		
-		argsBracketCount += char in argCharDict ? argCharDict[char] : 0;
-		commandBracketCount += char in commandCharDict ? commandCharDict[char] : 0;
+		argsBracketCount += argCharDict[char] ?? 0;
+		commandBracketCount += commandCharDict[char] ?? 0;
 		
 		//Позволяет сохранить другой тип скобок внутри других скобок
 		if ((argsBracketCount === 1)&&(commandBracketCount===0)){
@@ -102,8 +95,8 @@ function openBrackets(_text) {
 					if (skipCommandBracketSymbol === 0) {
 						if ((char === "\n")&&(commandBracketCount == 1)) {
 							//TODO: сделать проверку пустого значения
-							if (bracketCommand.trim() != ''){
-								commandArray.push(bracketCommand.trim());
+							if (bracketCommand != ''){
+								commandArray.push(bracketCommand);
 							}
 							bracketCommand = "";
 						} else {
@@ -114,8 +107,8 @@ function openBrackets(_text) {
 						skipCommandBracketSymbol = 0;
 					}
 				} else if (skipCommandBracketSymbol === 0) {
-					if (bracketCommand.trim() != ''){
-								commandArray.push(bracketCommand.trim());
+					if (bracketCommand != ''){
+								commandArray.push(bracketCommand);
 					}
 					result.args.push(commandArray);
 					commandArray = [];
@@ -137,6 +130,18 @@ function openBrackets(_text) {
 	if ((result.text.replace(/\s/g, '')=="")&&(result.args.length>=1)){
 		return openBrackets(result.args[0]);
 	}
+	if (result.args.length>=1) {
+		result.type = hasNestedArray(result.args)?"funcCommands":"func";
+	} else {
+		if ((!isNaN(result.text))) {
+			result.type = "float";
+			result.text = parseFloat(result.text);
+		} else if (variablesMap.has(result.text)) {
+			result.type = "var";
+		} else {
+			result.type = "str"; //Сделать проверку на числа, и т.п. str,var,float
+		}
+	}
 	return result;
 };
 
@@ -148,7 +153,7 @@ function returnReq(req) {return (req)?1:0}; //Нужно для численно
  Добавляет значения блоков в blocks (Распределяя по классам)
  modules содержит все подключённые модули а также их описание, color и ссылка на документацию
 */
-//TODO: Сделать проверку кол-ва аргументов, задать тип данных для работы с блоками
+//TODO: Сделать проверку кол-ва аргументов,  ??задать тип данных для работы с блоками
 class extensions {
   constructor() {
     this.commands = new Map();
@@ -178,6 +183,7 @@ class extensions {
         this.commands.set(openBrackets(key).text.toLowerCase(), {
           id: info.id,
           opcode: block.opcode,
+		  type: openBrackets(key).type,
           args: block.args,
 		  notVarValue: block.notVarValue,
 		  func: clazz.prototype[block.opcode]  //возможно стоит изменить это
@@ -195,39 +201,53 @@ class extensions {
   }
 }
 var ext = new extensions(); //Инициализация дополнений
+function hasNestedArray(array) { //Проверка того, что в массиве нет массива
+	return array.some(element => element instanceof Array);
+}
 
 function parser(_text,_notVarValue=false) {
 	/*
 	TODO:
-	1)Сделать поддержку переменных
 	2)Сделать поддержку классов, а также функций внутри кода
 	*/
 	//console.log ('parser text = ', _text);
-	let bracketsText = openBrackets(_text).text, bracketsArgs = openBrackets(_text).args;
-	function hasNestedArray(array) { //Проверка того, что в массиве нет массива
-	  return array.some(element => element instanceof Array);
-	}
-	let funcVar = ext.commands.get(bracketsText.replace(/ /g, "").toLowerCase());
-	//console.log (ext.commands.get(bracketsText.replace(/ /g, "")));
+	let openedBrackets = openBrackets(_text);
+	let bracketsText = openedBrackets.text, bracketsArgs, bracketsType = openedBrackets.type;
+	let funcVar;
+	let changeNotVarValue;
 	
-	//console.log(bracketsText);
-	if (!isNaN(bracketsText)){
-		return parseFloat(bracketsText);
-	} else if (typeof funcVar !== 'undefined') {
-		let changeNotVarValue = funcVar.notVarValue;
-		//console.log()
-		for (let i = 0; i < bracketsArgs.length; i++) {
-			if (!hasNestedArray([bracketsArgs[i]])){
-				bracketsArgs[i] = parser(bracketsArgs[i],i===0?changeNotVarValue===true?true:false:false);
+	switch (bracketsType) {
+		case "str":
+			return bracketsText || "0"
+		case "var":
+			return !_notVarValue?getVarValue(bracketsText):(bracketsText || "0");
+		case "float":
+			return bracketsText;
+		case "funcCommands":
+			bracketsArgs = openedBrackets.args;
+			funcVar = ext.commands.get(bracketsText.replace(/ /g, "").toLowerCase());
+			changeNotVarValue = funcVar.notVarValue;
+			//console.log()
+			if (!hasNestedArray([bracketsArgs[0]])){
+					bracketsArgs[0] = parser(bracketsArgs[0],changeNotVarValue===true?true:false);
 			}
-		}
-		return callFunction(funcVar.func,bracketsArgs);
-	} else if (bracketsText in variablesDict){ //Работа с переменными
-		//console.log(_notVarValue);
-		if (_notVarValue!=true){return getVarValue(bracketsText)};
-		//console.log(callFunction(funcVar.func,bracketsArgs));
+			for (let i = 1; i < bracketsArgs.length; i++) {
+				if (!hasNestedArray([bracketsArgs[i]])){
+					bracketsArgs[i] = parser(bracketsArgs[i]);
+				}
+			}
+			return callFunction(funcVar.func,bracketsArgs);
+		case "func":
+			bracketsArgs = openedBrackets.args;
+			funcVar = ext.commands.get(bracketsText.replace(/ /g, "").toLowerCase());
+			changeNotVarValue = funcVar.notVarValue;
+			//console.log()
+			bracketsArgs[0] = parser(bracketsArgs[0],changeNotVarValue===true?true:false);
+			for (let i = 1; i < bracketsArgs.length; i++) {
+				bracketsArgs[i] = parser(bracketsArgs[i]);
+			}
+			return callFunction(funcVar.func,bracketsArgs);
 	}
-	return bracketsText==""?"0".toString():bracketsText;
 }
 
 
@@ -269,6 +289,16 @@ function callFunction(text, ...args) {
 function isNotClassValid(clazz) {
   return !(clazz.prototype && clazz.prototype.getInfo && typeof clazz.prototype.getInfo === 'function');
 }
+function startCommandsArray(_commandsArray,_commandReturnValue){
+	let result = parser(_commandsArray[0]);
+	if (returnValue!=_commandReturnValue){
+		return result;
+	} else if (_commandsArray.length>1) {
+		return startCommandsArray(_commandsArray.slice(1),_commandReturnValue);
+	} else {
+		return result;
+	}
+}
 
 /*Start Base Modules*/
 class baseModule{
@@ -281,14 +311,22 @@ class baseModule{
 			description: 'Предоставляет базовые операции для работы с кодом', //Описание модуля
 			blocks: [
 				{
+					text: 'return ()',opcode: 'returnFunc',description: 'Останавливает работу куска кода, возвращает значение'
+				},
+				{
 					text: 'rys{ }',opcode: 'rys',description: 'Выполнение кода построчно',
+					//type: 'reporter',
+				},
+				{
+					text: 'repeat(){ }',opcode: 'repeatFunc',description: '',
 					//type: 'reporter',
 				},
 				{
 					text: 'if () {}',opcode: 'ifFunc',description: 'Выполнение кода слева если условие в первом аргументе True(1)'
 				},
+				
 				{
-					text: 'if () {}else{}',opcode: 'ifElseFunc',description: 'Выполнение кода слева если условие в первом аргументе True(1)'
+					text: 'if () {}else{}',opcode: 'ifElseFunc',description: 'Выполнение кода слева если условие в первом аргументе True(1), иначе выполняет условие справа'
 				},
 				/*
 					Математические выражения
@@ -523,8 +561,15 @@ class baseModule{
 	*/
 	
 	//Циклы
+	
+	//TODO: добавить return
+	returnFunc(args){
+		returnValue++;
+		return args[0];
+	};
 	rys(args){	
 		let result;
+		let commandReturnValue = returnValue;
 		let commandsArray = args[0];
 		//Проверка исключений
 		if (!Array.isArray(commandsArray)) {
@@ -532,55 +577,62 @@ class baseModule{
 		}
 		//console.log("rys module commands:" + commandsArray);
 		// Перебор элементов массива и вывод их в консоль
-		for (const commands of commandsArray) {
-			//console.log('rys module: ' + commands);
-			result = parser(commands);
-		}
-		return result;
+		return startCommandsArray(commandsArray,commandReturnValue);
 	};
-	ifFunc(args){
+	repeatFunc(args){
+		let repeatNum = args[0];
 		let result;
-		//console.log(args);
+		let commandReturnValue = returnValue;
+		let commandsArray = args[1];
+		if (!Array.isArray(commandsArray)) {
+			throw new TypeError("[TOTAL ERROR] In rys has Arg is not array of commands, use template 'rys {commands}'");
+		}
+		
+		for (let i = 0; i < repeatNum; i++){
+			result = startCommandsArray(commandsArray,commandReturnValue);
+			if (returnValue!=commandReturnValue) {
+				returnValue--;
+				break;
+			}
+		};
+		return result;
+	}
+	ifFunc(args){
 		if (args[0]===1) {
+			let result;
 			let commandsArray = args[1];
-			//Проверка исключений
-			if (!Array.isArray(commandsArray)) {
+			let commandReturnValue = returnValue;
+			if (!Array.isArray(commandsArray)) {//Проверка исключений
 				throw new TypeError("[TOTAL ERROR] In {}'if{}' has Arg is not array of commands, use template 'if (req) {commands}'");
 			}
 			for (const commands of commandsArray) {
-				//console.log('rys module: ' + commands);
 				result = parser(commands);
+				if (returnValue!=commandReturnValue) {
+					break;
+				};
 			}
 			return result;
 		}
 	};
 	ifElseFunc(args){
-		//console.log(args);
 		let result;
-		//console.log(args);
+		let commandReturnValue = returnValue;
 		if (args[0]===1) {
 			let commandsArray = args[1];
-			//Проверка исключений
-			if (!Array.isArray(commandsArray)) {
-				throw new TypeError("[TOTAL ERROR] In {}'if {} else' has Arg is not array of commands, use template 'if (req) {commands}'");
-			}
-			for (const commands of commandsArray) {
-				//console.log('rys module: ' + commands);
-				result = parser(commands);
-			}
-			return result;
 		} else {
 			let commandsArray = args[2];
-			//Проверка исключений
-			if (!Array.isArray(commandsArray)) {
-				throw new TypeError("[TOTAL ERROR] In {}'if else {}' has Arg is not array of commands, use template 'if (req) {commands}'");
-			}
-			for (const commands of commandsArray) {
-				//console.log('rys module: ' + commands);
-				result = parser(commands);
-			}
-			return result;
 		}
+		
+		if (!Array.isArray(commandsArray)) {
+			throw new TypeError("[TOTAL ERROR] In {}'if else {}' has Arg is not array of commands, use template 'if (req) {commands}'");
+		}
+		for (const commands of commandsArray) {
+			result = parser(commands);
+			if (returnValue!=commandReturnValue) {
+				break;
+			};
+		}		
+		return result;
 	};
 	
 	/*
@@ -776,26 +828,26 @@ class baseModule{
 		Работа с переменными
 	*/
 	getVar(args){
-		variables.getValue(args[0]);
+		getVarValue(args[0]);
 	};
 	setVar(args){
 		return setVarValue(args[0],args[1]);
 	};
 	summVar(args){
 		//console.log(args);
-		return setVarValue(args[0],variables.getValue(args[0])+args[1]);
+		return setVarValue(args[0],getVarValue(args[0])+args[1]);
 	};
 	subtractVar(args){
-		return setVarValue(args[0],variables.getValue(args[0])-args[1]);
+		return setVarValue(args[0],getVarValue(args[0])-args[1]);
 	};
 	multiplyVar(args){
-		return setVarValue(args[0],variables.getValue(args[0])*args[1]);
+		return setVarValue(args[0],getVarValue(args[0])*args[1]);
 	};
 	divideVar(args){
-		return setVarValue(args[0],variables.getValue(args[0])/args[1]);
+		return setVarValue(args[0],getVarValue(args[0])/args[1]);
 	};
 	powerVar(args){
-		return setVarValue(args[0],variables.getValue(args[0])**args[1]);
+		return setVarValue(args[0],getVarValue(args[0])**args[1]);
 	};
 }
 ext.register(baseModule);
@@ -1040,16 +1092,19 @@ function getNumberArray(arr){
 
 //При нажатии кнопки "submitButton"
 submitButton.addEventListener('click', function() { 
+	const startTime = Date.now();
 	const editTextValue = editTextElement.value;
 	// Пример использования
 	//let textVar = openBrackets(editTextElement.value).text;
 	//let args = openBrackets(editTextElement.value).args;
 	const result2 = parser(editTextElement.value);
-	myFunction(`${result2}`);
+	const endTime = Date.now();
+	const executionTime = endTime - startTime;
+	myFunction(`${result2 + '\nRunning Time: ' + executionTime}`);
 });
 
 //Вывод значения в "output"
 function myFunction(text) {
     // Ваш код, использующий текст из editText
-    outputElement.innerHTML = 'Program returned: ' + text;
+    outputElement.innerHTML = 'Program returned: ' + text  ;
 }

@@ -7,13 +7,13 @@ rys {
 	  (upCost) = (10)
 	  (coinsPerClick) = (1)
 	}
-	(coins) += ((coinsPerClick))
 	if ((upCost)<=(coins)){
 		(coins) -= (upCost)
 		(coinsPerClick) += (1)
 		(upCost) = (round((upCost)*(1.5)))
 		(Вы купили улучшение! Теперь +coinsPerClick = )join(coinsPerClick)
 	} else {
+		(coins) += ((coinsPerClick))
 		(Всего coins: )join((coins)join((, до следующего улучшения: )join(upCost)))
 	}
 }

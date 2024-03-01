@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Одновременное суммирование пар чисел</title>
+</head>
+<body>
+  <h1>Одновременное суммирование пар чисел</h1>
+  <p>Данная программа демонстрирует одновременное суммирование пар чисел из массива с помощью Promise.all.</p>
+
+  <button onclick="run()">Запустить</button>
+
+  <div id="result"></div>
+
+  <script>
+    function run() {
+      const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      const startTime = Date.now();
+
+      const promises = [];
+      for (let i = 0; i < numbers.length - 1; i += 2) {
+        promises.push(sumPair(numbers[i], numbers[i + 1]));
+      }
+
+      Promise.all(promises).then((sums) => {
+		console.log(JSON.stringify(sums, null, 2));
+        const endTime = Date.now();
+        const executionTime = endTime - startTime;
+
+        const resultElement = document.getElementById("result");
+        resultElement.innerHTML = `
+          <p>Суммы пар чисел:</p>
+          <pre>${JSON.stringify(sums, null, 2)}</pre>
+
+          <p>Время выполнения: ${executionTime} мс</p>
+        `;
+      });
+    }
+
+    function sumPair(a, b) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(a + b);
+        }, 1000);
+      });
+    }
+  </script>
+</body>
+</html>
