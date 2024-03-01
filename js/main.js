@@ -290,6 +290,9 @@ function isNotClassValid(clazz) {
   return !(clazz.prototype && clazz.prototype.getInfo && typeof clazz.prototype.getInfo === 'function');
 }
 function startCommandsArray(_commandsArray,_commandReturnValue){
+	if (!Array.isArray(_commandsArray)) {
+			throw new TypeError("[TOTAL ERROR] 'func {}' have not array of commands");
+	}
 	let result = parser(_commandsArray[0]);
 	if (returnValue!=_commandReturnValue){
 		return result;
@@ -571,12 +574,6 @@ class baseModule{
 		let result;
 		let commandReturnValue = returnValue;
 		let commandsArray = args[0];
-		//Проверка исключений
-		if (!Array.isArray(commandsArray)) {
-			throw new TypeError("[TOTAL ERROR] In rys has Arg is not array of commands, use template 'rys {commands}'");
-		}
-		//console.log("rys module commands:" + commandsArray);
-		// Перебор элементов массива и вывод их в консоль
 		return startCommandsArray(commandsArray,commandReturnValue);
 	};
 	repeatFunc(args){
@@ -584,10 +581,6 @@ class baseModule{
 		let result;
 		let commandReturnValue = returnValue;
 		let commandsArray = args[1];
-		if (!Array.isArray(commandsArray)) {
-			throw new TypeError("[TOTAL ERROR] In rys has Arg is not array of commands, use template 'rys {commands}'");
-		}
-		
 		for (let i = 0; i < repeatNum; i++){
 			result = startCommandsArray(commandsArray,commandReturnValue);
 			if (returnValue!=commandReturnValue) {
@@ -602,16 +595,7 @@ class baseModule{
 			let result;
 			let commandsArray = args[1];
 			let commandReturnValue = returnValue;
-			if (!Array.isArray(commandsArray)) {//Проверка исключений
-				throw new TypeError("[TOTAL ERROR] In {}'if{}' has Arg is not array of commands, use template 'if (req) {commands}'");
-			}
-			for (const commands of commandsArray) {
-				result = parser(commands);
-				if (returnValue!=commandReturnValue) {
-					break;
-				};
-			}
-			return result;
+			return startCommandsArray(commandsArray,commandReturnValue);
 		}
 	};
 	ifElseFunc(args){
@@ -621,18 +605,8 @@ class baseModule{
 			let commandsArray = args[1];
 		} else {
 			let commandsArray = args[2];
-		}
-		
-		if (!Array.isArray(commandsArray)) {
-			throw new TypeError("[TOTAL ERROR] In {}'if else {}' has Arg is not array of commands, use template 'if (req) {commands}'");
-		}
-		for (const commands of commandsArray) {
-			result = parser(commands);
-			if (returnValue!=commandReturnValue) {
-				break;
-			};
-		}		
-		return result;
+		}	
+		return startCommandsArray(commandsArray,commandReturnValue);
 	};
 	
 	/*
