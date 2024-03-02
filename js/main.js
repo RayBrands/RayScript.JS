@@ -41,7 +41,9 @@ var commandCharDict = {
 		"{": 1,
 		"}": -1,
 };
-
+function hasNestedArray(arg) { //Проверка того, что в массиве нет массива
+  return arg instanceof Array;
+}	
 function openBrackets(_text) {
 	let result = {
 		text: "",
@@ -131,19 +133,45 @@ function openBrackets(_text) {
 		return openBrackets(result.args[0]);
 	}
 	if (result.args.length>=1) {
-		result.type = hasNestedArray(result.args)?"funcCommands":"func";
+		result.type = "func";
+		for (let argArray of result.args){
+			result.type = hasNestedArray(argArray)?"funcCommands":result.type;
+		}
+		
 	} else {
 		if ((!isNaN(result.text))) {
 			result.type = "float";
 			result.text = parseFloat(result.text);
-		} else if (variablesMap.has(result.text)) {
-			result.type = "var";
-		} else {
+		} else { //variablesMap.has(result.text)
 			result.type = "str"; //Сделать проверку на числа, и т.п. str,var,float
 		}
 	}
 	return result;
 };
+
+function openAllBrackets(_text){
+	//console.log(`openAllBrackets:${_text}`);
+	let result = {
+		text: "",
+		args: [],
+		type: "", //str(str,var,float),func,funcCommands
+	};
+	result = openBrackets(_text.replace(/\t/g, "")); //Warning: Все штуки табуляции будут игнорироваться, в том числе и в аргументах
+	for (let i = 0; i < result.args.length; i++){
+		if (hasNestedArray(result.args[i])){
+			let commandsArray = [];
+			for (let command of result.args[i]){
+				//console.log(`openAllBrackets: in command ${command}`);
+				let commandResult = openAllBrackets(command);
+				commandsArray.push(commandResult);
+			}
+			result.args[i] = commandsArray;
+		} else {
+			result.args[i] = openAllBrackets(result.args[i]);
+		}
+	}
+	return result;
+}
 
 function returnReq(req) {return (req)?1:0}; //Нужно для численного значения булевого типа данных
 
@@ -201,8 +229,41 @@ class extensions {
   }
 }
 var ext = new extensions(); //Инициализация дополнений
-function hasNestedArray(array) { //Проверка того, что в массиве нет массива
-	return array.some(element => element instanceof Array);
+
+function newParser(_openedBrackets,_notVarValue=false){
+	let funcVar,bracketsArgs;
+	//console.log(_openedBrackets);
+	switch (_openedBrackets.type) {
+		case "str":
+			//console.log(_notVarValue);
+			if (variablesMap.has(_openedBrackets.text)){
+				return !_notVarValue?getVarValue(_openedBrackets.text.replace(/ /g, "")):(_openedBrackets.text || "0");
+			} else {
+				return _openedBrackets.text || "0";
+			}
+		case "float":
+			return _openedBrackets.text
+		case "func":
+			funcVar = ext.commands.get(_openedBrackets.text.replace(/ /g, "").toLowerCase());
+			//console.log(funcVar);
+			bracketsArgs = _openedBrackets.args;
+			let changeNotVarValue = funcVar.notVarValue;
+			bracketsArgs[0] = newParser(bracketsArgs[0],changeNotVarValue===true?true:changeNotVarValue);
+			for (let i = 1; i < bracketsArgs.length; i++) {
+				bracketsArgs[i] = newParser(bracketsArgs[i]);
+			}
+			//console.log(bracketsArgs);
+			return callFunction(funcVar.func,bracketsArgs);
+		case "funcCommands":
+			funcVar = ext.commands.get(_openedBrackets.text.replace(/ /g, "").toLowerCase());
+			//console.log(funcVar);
+			bracketsArgs = _openedBrackets.args;
+			let result = callFunction(funcVar.func,bracketsArgs);
+			//console.log(result);
+			return result;
+	};
+	return _openedBrackets;
+	//return _openedBrackets.text || "0";
 }
 
 function parser(_text,_notVarValue=false) {
@@ -289,11 +350,27 @@ function callFunction(text, ...args) {
 function isNotClassValid(clazz) {
   return !(clazz.prototype && clazz.prototype.getInfo && typeof clazz.prototype.getInfo === 'function');
 }
+
+function startNewCommandsArray(_commandsArray,_commandReturnValue){
+	//console.log("startCommand =" + _commandsArray[0]);
+	let result = newParser(_commandsArray[0]);
+	//console.log("startCommand. result=" + result);
+	if (returnValue!=_commandReturnValue){
+		return result;
+	} else if (_commandsArray.length>1) {
+		return startNewCommandsArray(_commandsArray.slice(1),_commandReturnValue);
+	} else {
+		return result;
+	}
+}
+
 function startCommandsArray(_commandsArray,_commandReturnValue){
 	if (!Array.isArray(_commandsArray)) {
 			throw new TypeError("[TOTAL ERROR] 'func {}' have not array of commands");
 	}
 	let result = parser(_commandsArray[0]);
+	//console.log("result startCommands:");
+	//console.log(result);
 	if (returnValue!=_commandReturnValue){
 		return result;
 	} else if (_commandsArray.length>1) {
@@ -574,15 +651,17 @@ class baseModule{
 		let result;
 		let commandReturnValue = returnValue;
 		let commandsArray = args[0];
-		return startCommandsArray(commandsArray,commandReturnValue);
+		return startNewCommandsArray(commandsArray,commandReturnValue);
 	};
 	repeatFunc(args){
-		let repeatNum = args[0];
+		//console.log (`repeat args: `);
+		//console.log (args);
+		let repeatNum = newParser(args[0]);
 		let result;
 		let commandReturnValue = returnValue;
-		let commandsArray = args[1];
+		let commandsArray = (args[1]);
 		for (let i = 0; i < repeatNum; i++){
-			result = startCommandsArray(commandsArray,commandReturnValue);
+			result = startNewCommandsArray(commandsArray,commandReturnValue);
 			if (returnValue!=commandReturnValue) {
 				returnValue--;
 				break;
@@ -591,22 +670,24 @@ class baseModule{
 		return result;
 	}
 	ifFunc(args){
-		if (args[0]===1) {
+		//console.log(args);
+		if (newParser(args[0])===1) {
 			let result;
 			let commandsArray = args[1];
 			let commandReturnValue = returnValue;
-			return startCommandsArray(commandsArray,commandReturnValue);
+			return startNewCommandsArray(commandsArray,commandReturnValue);
 		}
 	};
 	ifElseFunc(args){
 		let result;
 		let commandReturnValue = returnValue;
-		if (args[0]===1) {
-			let commandsArray = args[1];
+		let commandsArray
+		if (newParser(args[0])===1) {
+			commandsArray = args[1];
 		} else {
-			let commandsArray = args[2];
+			commandsArray = args[2];
 		}	
-		return startCommandsArray(commandsArray,commandReturnValue);
+		return startNewCommandsArray(commandsArray,commandReturnValue);
 	};
 	
 	/*
@@ -744,9 +825,10 @@ class baseModule{
         return (args[0]).toString().includes(args[1].toString()) ? 1 : 0;
     };
 	isVar(args){
+		//console.log(args);
 		//console.log (variablesDict);
 		//console.log (args[0]);
-		return (args[0] in variablesDict?1:0);
+		return (variablesMap.has(args[0])?1:0);
 	};
 
 //opcode: 'inFunc', //Новый блок
@@ -1033,8 +1115,8 @@ var keys = new Map();
     function(e){
         keys.set(e.keyCode,e.key);
         var keysArray = getNumberArray(keys);
-        //document.body.innerHTML = "Keys currently pressed:" + keysArray;
-		console.log(keys);
+        //document.body.innerHTML = "Keys currently pressed:" + keysArray;keysArray;
+		//console.log(keys);
 		keys.delete(e.keyCode);
         
 		
@@ -1071,10 +1153,11 @@ submitButton.addEventListener('click', function() {
 	// Пример использования
 	//let textVar = openBrackets(editTextElement.value).text;
 	//let args = openBrackets(editTextElement.value).args;
-	const result2 = parser(editTextElement.value);
+	const result2 = newParser(openAllBrackets(editTextElement.value));//parser(editTextElement.value);
+	
 	const endTime = Date.now();
 	const executionTime = endTime - startTime;
-	myFunction(`${result2 + '\nRunning Time: ' + executionTime}`);
+	myFunction(`${result2}\n\nRunning Time: ${executionTime}`);
 });
 
 //Вывод значения в "output"
