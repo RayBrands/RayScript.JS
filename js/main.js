@@ -45,6 +45,8 @@ function hasNestedArray(arg) { //Проверка того, что в масси
   return arg instanceof Array;
 }	
 function openBrackets(_text) {
+	//console.log(`OpenBrackets text: ${_text}`);
+	//console.log("");
 	let result = {
 		text: "",
 		args: [],
@@ -86,6 +88,8 @@ function openBrackets(_text) {
 					}
 				} else if (skipArgBracketSymbol === 0){ //последняя скобка аргумента
 					result.args.push(bracketArg);
+					//console.log(`Changed`);
+					//console.log(newResult);
 					bracketArg = "";
 					skipArgBracketSymbol = 1;
 					firstBracketType = "" 
@@ -110,7 +114,7 @@ function openBrackets(_text) {
 					}
 				} else if (skipCommandBracketSymbol === 0) {
 					if (bracketCommand != ''){
-								commandArray.push(bracketCommand);
+						commandArray.push(bracketCommand);
 					}
 					result.args.push(commandArray);
 					commandArray = [];
@@ -124,14 +128,13 @@ function openBrackets(_text) {
 				result.text += char;
 		}
 	};
-	
+	//console.log(result);
 	result.text.trim();
 	
 	//Проверка простых скобок без текста
 	//console.log(result.text.replace(/\s/g, ''));
-	if ((result.text.replace(/\s/g, '')=="")&&(result.args.length>=1)){
-		return openBrackets(result.args[0]);
-	}
+	if ((result.text.replace(/\s/g, '')=="")&&(result.args.length>=1)){ return openBrackets(result.args[0])};
+
 	if (result.args.length>=1) {
 		result.type = "func";
 		for (let argArray of result.args){
@@ -146,30 +149,45 @@ function openBrackets(_text) {
 			result.type = "str"; //Сделать проверку на числа, и т.п. str,var,float
 		}
 	}
+	//console.log(result);
 	return result;
 };
 
 function openAllBrackets(_text){
-	//console.log(`openAllBrackets:${_text}`);
+	//console.log(`openAllBrackets:`);
+	//console.log(_text);
 	let result = {
 		text: "",
 		args: [],
 		type: "", //str(str,var,float),func,funcCommands
 	};
 	result = openBrackets(_text.replace(/\t/g, "")); //Warning: Все штуки табуляции будут игнорироваться, в том числе и в аргументах
-	for (let i = 0; i < result.args.length; i++){
-		if (hasNestedArray(result.args[i])){
+	let newArgs = [];
+	result.args.forEach(arg => {
+		//console.log(`new args`);
+		//console.log(arg);
+		if (hasNestedArray(arg)){
 			let commandsArray = [];
-			for (let command of result.args[i]){
-				//console.log(`openAllBrackets: in command ${command}`);
-				let commandResult = openAllBrackets(command);
-				commandsArray.push(commandResult);
-			}
-			result.args[i] = commandsArray;
+			//console.log("Commands");
+			arg.forEach(command => {
+				commandsArray.push(openAllBrackets(command));		
+			});
+			newArgs.push(commandsArray);
 		} else {
-			result.args[i] = openAllBrackets(result.args[i]);
+			let openedBrackets = openAllBrackets(arg);
+			newArgs.push({
+				text: openedBrackets.text,
+				args: openedBrackets.args,
+				type: openedBrackets.type,
+			});
 		}
-	}
+		//console.log(arg); // 1, 2, 3
+	});
+	//console.log(`openBrackets result:`);
+	
+	//console.log(newArgs);
+	result.args = newArgs;
+	//console.log(result);
 	return result;
 }
 
@@ -231,8 +249,10 @@ class extensions {
 var ext = new extensions(); //Инициализация дополнений
 
 function newParser(_openedBrackets,_notVarValue=false){
+	
 	let funcVar,bracketsArgs;
-	//console.log(_openedBrackets);
+	console.log("NewParser have _openedBrackets:");
+	console.log(_openedBrackets);
 	switch (_openedBrackets.type) {
 		case "str":
 			//console.log(_notVarValue);
@@ -256,59 +276,16 @@ function newParser(_openedBrackets,_notVarValue=false){
 			return callFunction(funcVar.func,bracketsArgs);
 		case "funcCommands":
 			funcVar = ext.commands.get(_openedBrackets.text.replace(/ /g, "").toLowerCase());
-			//console.log(funcVar);
+			
 			bracketsArgs = _openedBrackets.args;
+			//console.log(bracketsArgs);
+			
 			let result = callFunction(funcVar.func,bracketsArgs);
 			//console.log(result);
 			return result;
 	};
 	return _openedBrackets;
 	//return _openedBrackets.text || "0";
-}
-
-function parser(_text,_notVarValue=false) {
-	/*
-	TODO:
-	2)Сделать поддержку классов, а также функций внутри кода
-	*/
-	//console.log ('parser text = ', _text);
-	let openedBrackets = openBrackets(_text);
-	let bracketsText = openedBrackets.text, bracketsArgs, bracketsType = openedBrackets.type;
-	let funcVar;
-	let changeNotVarValue;
-	
-	switch (bracketsType) {
-		case "str":
-			return bracketsText || "0"
-		case "var":
-			return !_notVarValue?getVarValue(bracketsText):(bracketsText || "0");
-		case "float":
-			return bracketsText;
-		case "funcCommands":
-			bracketsArgs = openedBrackets.args;
-			funcVar = ext.commands.get(bracketsText.replace(/ /g, "").toLowerCase());
-			changeNotVarValue = funcVar.notVarValue;
-			//console.log()
-			if (!hasNestedArray([bracketsArgs[0]])){
-					bracketsArgs[0] = parser(bracketsArgs[0],changeNotVarValue===true?true:false);
-			}
-			for (let i = 1; i < bracketsArgs.length; i++) {
-				if (!hasNestedArray([bracketsArgs[i]])){
-					bracketsArgs[i] = parser(bracketsArgs[i]);
-				}
-			}
-			return callFunction(funcVar.func,bracketsArgs);
-		case "func":
-			bracketsArgs = openedBrackets.args;
-			funcVar = ext.commands.get(bracketsText.replace(/ /g, "").toLowerCase());
-			changeNotVarValue = funcVar.notVarValue;
-			//console.log()
-			bracketsArgs[0] = parser(bracketsArgs[0],changeNotVarValue===true?true:false);
-			for (let i = 1; i < bracketsArgs.length; i++) {
-				bracketsArgs[i] = parser(bracketsArgs[i]);
-			}
-			return callFunction(funcVar.func,bracketsArgs);
-	}
 }
 
 
@@ -352,29 +329,15 @@ function isNotClassValid(clazz) {
 }
 
 function startNewCommandsArray(_commandsArray,_commandReturnValue){
-	//console.log("startCommand =" + _commandsArray[0]);
+	//console.log( _commandsArray);
+	
 	let result = newParser(_commandsArray[0]);
 	//console.log("startCommand. result=" + result);
+	//console.log( _commandsArray);
 	if (returnValue!=_commandReturnValue){
 		return result;
 	} else if (_commandsArray.length>1) {
 		return startNewCommandsArray(_commandsArray.slice(1),_commandReturnValue);
-	} else {
-		return result;
-	}
-}
-
-function startCommandsArray(_commandsArray,_commandReturnValue){
-	if (!Array.isArray(_commandsArray)) {
-			throw new TypeError("[TOTAL ERROR] 'func {}' have not array of commands");
-	}
-	let result = parser(_commandsArray[0]);
-	//console.log("result startCommands:");
-	//console.log(result);
-	if (returnValue!=_commandReturnValue){
-		return result;
-	} else if (_commandsArray.length>1) {
-		return startCommandsArray(_commandsArray.slice(1),_commandReturnValue);
 	} else {
 		return result;
 	}
@@ -662,6 +625,7 @@ class baseModule{
 		let commandsArray = (args[1]);
 		for (let i = 0; i < repeatNum; i++){
 			result = startNewCommandsArray(commandsArray,commandReturnValue);
+			//console.log(commandsArray);
 			if (returnValue!=commandReturnValue) {
 				returnValue--;
 				break;
@@ -671,7 +635,7 @@ class baseModule{
 	}
 	ifFunc(args){
 		//console.log(args);
-		if (newParser(args[0])===1) {
+		if (	(args[0])===1) {
 			let result;
 			let commandsArray = args[1];
 			let commandReturnValue = returnValue;
@@ -1108,7 +1072,12 @@ ext.register(PenModule);*/
 const submitButton = document.getElementById('submitButton');
 const outputElement = document.getElementById('output');
 const editTextElement = document.querySelector('textarea');
-
+/*console.log(openAllBrackets(`repeat(100){
+(var)+=(1)
+if ((var)>(10)){
+return(var)
+}
+}`));*/
 var keys = new Map();
 //document.body.innerHTML = "Keys currently pressed: "
 /*window.addEventListener("keydown",
@@ -1149,16 +1118,32 @@ function getNumberArray(arr){
 //При нажатии кнопки "submitButton"
 submitButton.addEventListener('click', function() { 
 	const startTime = Date.now();
-	const editTextValue = editTextElement.value;
+	//const processedText = value
+	let testBrackets = openAllBrackets(`repeat(100){
+(var)+=(1)
+if ((var)>(10)){
+return(var)
+}
+}`);
+	let openedBrackets = openAllBrackets(editTextElement.value);
+	console.log(openedBrackets);
+	console.log(newParser(testBrackets));
+	
+	/*const editTextValue = (editTextElement.value).replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
 	// Пример использования
 	//let textVar = openBrackets(editTextElement.value).text;
 	//let args = openBrackets(editTextElement.value).args;
-	const result2 = newParser(openAllBrackets(editTextElement.value));//parser(editTextElement.value);
+	console.log(editTextValue);
+	let openedBracket = openAllBrackets(`${editTextElement.value}`);
+	console.log(openedBracket);
+	console.log("Вызов Parser\n");
+	const result2 = newParser(openedBracket);//parser(editTextElement.value);
 	
 	const endTime = Date.now();
 	const executionTime = endTime - startTime;
-	myFunction(`${result2}\n\nRunning Time: ${executionTime}`);
+	myFunction(`${result2}\n\nRunning Time: ${executionTime}`);*/
 });
+
 
 //Вывод значения в "output"
 function myFunction(text) {
