@@ -178,8 +178,8 @@ function openAllBrackets(_text) {
 			result.commands.push(commandsArray)
 		}
 	}
-	
-	for (;(text.length>0);) {
+	//console.log(text);
+	for (;((text).length>0);) {
 	
 		let char = text[0];
 		//debug? console.log(`text = ${text}`):"";
@@ -233,7 +233,23 @@ function openAllBrackets(_text) {
 		return "str"
 	}
 	
+	
 	result.type = getType();
+	/*if (result.text.replace(/[\s\t\n]/g, "").length < 1){
+		if (result.type = "fync"){
+			return openAllBrackets(result.args[0])
+		}
+	}**/
+	/*if ((result.text).length < 1){
+		
+		if (([result.args].length)>0){
+			console.log((result.text).length);
+			console.log(result.args);
+			return openAllBrackets([result.args][0])
+		}
+		return 0;
+	}*/
+
 	return result
 }
 
@@ -241,11 +257,10 @@ function openAllBrackets(_text) {
 function callFunction(_func, _data={args:[],commands:[],type:"func"}) {//TODO: Сделать описание и сделать проверку функций и аргументов, представленных внизу
 	let 
 		result;
-	//debug? console.log(_data):"";
-	
 	
 	if (_data.type==="func") {
 		debug?!(_data.args).length?console.warn(`\n[Warning] Функция ${_func} не имеет аргументов`):"":"";
+		//console.log(_data.args);
 		result = _func(...[_data.args])
 	} else {
 		debug? !(_data.commands).length?console.warn(`\n[Warning] Функция ${_func} не имеет комманд в {commands}`):"":"";
@@ -275,7 +290,7 @@ function parser(_data,_notVarValue=false){
 	
 	function caseStr(){
 		if (variablesMap.has(_data.text)){
-			if (!_notVarValue){
+			if (!(_notVarValue)){
 				return getVarValue(_data.text)
 			}
 		} 
@@ -286,13 +301,13 @@ function parser(_data,_notVarValue=false){
 		let 
 			funcData = {
 				func: ext.commands.get(_data.text).func,
+				notVarValue: ext.commands.get(_data.text).notVarValue,
 				args: _data.args
-			},
-			notVarValue = funcData.func.notVarValue;
+			};
 			
-		funcData.args[0] = parser(funcData.args[0],notVarValue===true?true:false);
-		for (let i = 1; i < funcData.args.length; i++) {
-			funcData.args[i] = parser(funcData.args[i])
+		funcData.args[0] = parser(funcData.args[0],funcData.notVarValue===true?true:_notVarValue);
+		for (let i = 1; i < (funcData.args).length; i++) {
+			funcData.args[i] = parser(funcData.args[i],_notVarValue)
 		}
 		//debug? console.log({args:funcData.args,type:_data.type}):"";
 		return callFunction(
@@ -321,15 +336,15 @@ function startCommandsFromArray(_commands, _commandReturnValue){
 	let
 		result;
 		
-	console.log("StartCommands");
+	//console.log("StartCommands");
 	for (let i = 0; i < _commands.length; i++){
 		result = parser(_commands[i]);
-		console.log(_commands[i]);
+		//console.log(_commands[i]);
 		if (returnValue!=_commandReturnValue){
 			return result
 		}
 	}
-	
+
 	return result
 }
 
@@ -663,21 +678,26 @@ class baseModule{
 		let 
 			commandReturnValue = returnValue,
 			result;
-			
-		result = startCommandsFromArray(_commands[0],commandReturnValue);
-		debug? console.log(_args[0],_commands):"";
-		debug? console.log(result):"";
+		const command = _commands[0];
+		result = startCommandsFromArray(command,commandReturnValue);
+		//debug? console.log(_args[0],_commands):"";
+		//debug? console.log(result):"";
 		return result;
 	};
-	repeatFunc(args){
+	repeatFunc(_args,_commands){
 		//console.log (`repeat args: `);
-		//console.log (args);
-		let repeatNum = newParser(args[0]);
-		let result;
-		let commandReturnValue = returnValue;
-		let commandsArray = (args[1]);
+		//console.log (args)
+		const 
+			arg = _args[0],
+			command = _commands[0];
+		let 
+			repeatNum = parser(arg),
+			result,
+			commandReturnValue = returnValue,
+			commandsArray = (command);
+
 		for (let i = 0; i < repeatNum; i++){
-			result = startNewCommandsArray(commandsArray,commandReturnValue);
+			result = startCommandsFromArray(commandsArray,commandReturnValue);
 			//console.log(commandsArray);
 			if (returnValue!=commandReturnValue) {
 				returnValue--;
@@ -686,25 +706,28 @@ class baseModule{
 		};
 		return result;
 	}
-	ifFunc(args){
+	ifFunc(args,commands){
 		//console.log(args);
-		if (	(args[0])===1) {
-			let result;
-			let commandsArray = args[1];
+		const 
+			arg = args[0],
+			command = commands[0];
+
+		if (parser(arg)!=0){
+			//let result,
 			let commandReturnValue = returnValue;
-			return startNewCommandsArray(commandsArray,commandReturnValue);
+			return startCommandsFromArray(command,returnValue);
 		}
 	};
-	ifElseFunc(args){
+	ifElseFunc(args, commands){
 		let result;
 		let commandReturnValue = returnValue;
 		let commandsArray
-		if (newParser(args[0])===1) {
-			commandsArray = args[1];
+		if (parser(args[0])!=0) {
+			commandsArray = commands[0];
 		} else {
-			commandsArray = args[2];
+			commandsArray = commands[1];
 		}	
-		return startNewCommandsArray(commandsArray,commandReturnValue);
+		return startCommandsFromArray(commandsArray,commandReturnValue);
 	};
 	
 	/*
