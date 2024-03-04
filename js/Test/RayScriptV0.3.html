@@ -321,10 +321,14 @@ function startCommandsFromArray(_commands, _commandReturnValue){
 	let
 		result;
 		
-	_commands.forEach(command => {
-		result = parser(command);
-		(returnValue!=_commandReturnValue)?return result:";
-	})
+	console.log("StartCommands");
+	for (let i = 0; i < _commands.length; i++){
+		result = parser(_commands[i]);
+		console.log(_commands[i]);
+		if (returnValue!=_commandReturnValue){
+			return result
+		}
+	}
 	
 	return result
 }
@@ -657,11 +661,12 @@ class baseModule{
 	};
 	rys(_args,_commands){
 		let 
-			commandReturnValue = returnValue;
+			commandReturnValue = returnValue,
 			result;
 			
-		result = startNewCommandsArray(_commands,commandReturnValue);
-		debug? console.log(args,commands):"";
+		result = startCommandsFromArray(_commands[0],commandReturnValue);
+		debug? console.log(_args[0],_commands):"";
+		debug? console.log(result):"";
 		return result;
 	};
 	repeatFunc(args){
