@@ -13,6 +13,8 @@ Code, Compile, Run and Debug online from anywhere in world.
 <button id="submitButton">Start</button> 
 <script>
 
+
+
 const 
 	typeBracket = {
 		"(": "arg",
@@ -21,9 +23,23 @@ const
 	},
 	debug = true;
 
-function hasNestedArray(arg) { //Проверка того, что в массиве есть массив
-    return arg instanceof Array
+var
+	variablesMap = new Map(),
+	returnValue = 0; //Кол-во return в функции (Для работы с return (return abc))
+	
+function setVarValue(_name, _value) {
+	variablesMap.set(_name, _value);
+	return _value
 }
+
+function getVarValue(_name) {
+	return variablesMap.get(_name) ?? 0
+}
+
+
+/*function hasNestedArray(arg) { //Проверка того, что в массиве есть массив
+    return arg instanceof Array
+}*/
 
 /*
  Функция openAllBrackets (155 строк)
@@ -100,6 +116,8 @@ function openAllBrackets(_text) {
 			text = text.slice(1)
 		}
 		
+		pushCommand();
+		
 		return result
 	}
 	
@@ -134,7 +152,7 @@ function openAllBrackets(_text) {
 		}
 	};
 		
-	function сaseArgBracket(){
+	function caseArgBracket(){
 		let 
 			argResult = openTypeBrackets(text,"(",")");
 		
@@ -142,10 +160,10 @@ function openAllBrackets(_text) {
 			result.text += "(";
 		} else {
 			text = text.slice(argResult.text.length+1);
-			result.args.push(openAllBrackets(argResult.text));
+			result.args.push(openAllBrackets(argResult.text)); //TODO: добавить условие для добавление аргумента (Проверка на пустое значение);
 		}
 	}
-	 
+			
 	function caseCommandBracket(){
 		let 
 			commandResult = openTypeBrackets(text,"{","}");
@@ -178,7 +196,7 @@ function openAllBrackets(_text) {
 				caseCommandBracket();
 				break;
 				
-			case "array":
+			case "array": //TODO: сделать работу с массивами
 				break;
 				
 			case "default":
@@ -191,10 +209,10 @@ function openAllBrackets(_text) {
 	
 	function getType(){
 		if ((result.commands).length){
-			result.text.replace(/[\s\t\n]/g, "");
+			result.text = result.text.replace(/[\s\t\n]/g, "").toLowerCase();
 			return "funcCommands"
 		} else if ((result.args).length){
-			result.text.replace(/[\s\t\n]/g, "");
+			result.text = result.text.replace(/[\s\t\n]/g, "").toLowerCase();
 			delete result.commands;
 			return "func"
 		}
@@ -211,10 +229,103 @@ function openAllBrackets(_text) {
 			delete result.text;
 			return "float"
 		}
+		result.text = result.text.trim();
 		return "str"
 	}
 	
 	result.type = getType();
+	return result
+}
+
+/*Вызов функции с аргументами и командами*/
+function callFunction(_func, _data={args:[],commands:[],type:"func"}) {//TODO: Сделать описание и сделать проверку функций и аргументов, представленных внизу
+	let 
+		result;
+	//debug? console.log(_data):"";
+	
+	
+	if (_data.type==="func") {
+		debug?!(_data.args).length?console.warn(`\n[Warning] Функция ${_func} не имеет аргументов`):"":"";
+		result = _func(...[_data.args])
+	} else {
+		debug? !(_data.commands).length?console.warn(`\n[Warning] Функция ${_func} не имеет комманд в {commands}`):"":"";
+		result = _func(...[_data.args],...[_data.commands])
+	}
+	
+	return result;
+}
+
+function parser(_data,_notVarValue=false){
+
+	switch (_data.type) {
+		case "str":
+			return caseStr()
+
+		case "float":
+			return _data.value
+			
+		case "func":
+			return caseFunc()
+			
+		case "funcCommands":
+			return caseFuncCommands()
+	}
+	
+	return _data;
+	
+	function caseStr(){
+		if (variablesMap.has(_data.text)){
+			if (!_notVarValue){
+				return getVarValue(_data.text)
+			}
+		} 
+		return _data.text || "0"
+	}
+	
+	function caseFunc(){
+		let 
+			funcData = {
+				func: ext.commands.get(_data.text).func,
+				args: _data.args
+			},
+			notVarValue = funcData.func.notVarValue;
+			
+		funcData.args[0] = parser(funcData.args[0],notVarValue===true?true:false);
+		for (let i = 1; i < funcData.args.length; i++) {
+			funcData.args[i] = parser(funcData.args[i])
+		}
+		//debug? console.log({args:funcData.args,type:_data.type}):"";
+		return callFunction(
+			funcData.func,
+			{
+				args:funcData.args,
+				type:_data.type
+			}
+		)
+	}
+	
+	function caseFuncCommands(){	
+		//debug? console.log({args:funcData.args,type:_data.type}):"";
+		return callFunction(
+			ext.commands.get(_data.text).func,
+			{
+				args:_data.args,
+				type:_data.type,
+				commands: _data.commands,
+			}
+		)
+	}
+}
+
+function startCommandsFromArray(_commands, _commandReturnValue){
+	let
+		result;
+		
+	_commands.forEach(command => {
+		result = parser(command);
+		(returnValue!=_commandReturnValue)?return result:";
+	})
+	
 	return result
 }
 
@@ -231,8 +342,12 @@ class extensions {
     this.blocks = new Map();
     this.modules = new Map();
   }
+  
 
   register(clazz) { //Регистрация нового модуля
+	function isNotClassValid(clazz) {
+	  return !(clazz.prototype && clazz.prototype.getInfo && typeof clazz.prototype.getInfo === 'function');
+	}
     if (isNotClassValid(clazz)) {
       throw new Error('Invalid class: ' + clazz.name);
     }
@@ -249,13 +364,13 @@ class extensions {
     // Регистрация блоков
       for (const block of info.blocks) {
         //Регистрация команд
-        const key = block.text.replace(/\s/g, ''); // Ключ без пробелов
-		
-        this.commands.set(openBrackets(key).text.toLowerCase(), {
-          id: info.id,
-          opcode: block.opcode,
-		  type: openBrackets(key).type,
-          args: block.args,
+        const key = block.text; // Ключ без пробелов
+		//debug? console.log(openAllBrackets(key)):"";
+        this.commands.set(openAllBrackets(key).text, {
+          //id: info.id,
+          //opcode: block.opcode,
+		  //type: openBrackets(key).type,
+          //args: block.args,
 		  notVarValue: block.notVarValue,
 		  func: clazz.prototype[block.opcode]  //возможно стоит изменить это
         });
@@ -271,6 +386,543 @@ class extensions {
       return this;
   }
 }
+var ext = new extensions(); //Инициализация дополнений
+
+/*Start Modules*/
+class baseModule{
+	getInfo() {
+		return {
+			id: 'baseBlocks',
+			name: 'base commands',
+			//color: '#ff0000', // pure red
+			//docsURI: 'https://ya.ru', //Документация к модулю
+			description: 'Предоставляет базовые операции для работы с кодом', //Описание модуля
+			blocks: [
+				{
+					text: 'return ()',opcode: 'returnFunc',description: 'Останавливает работу куска кода, возвращает значение'
+				},
+				{
+					text: 'rys{ }',opcode: 'rys',description: 'Выполнение кода построчно',
+					//type: 'reporter',
+				},
+				{
+					text: 'repeat(){ }',opcode: 'repeatFunc',description: '',
+					//type: 'reporter',
+				},
+				{
+					text: 'if () {}',opcode: 'ifFunc',description: 'Выполнение кода слева если условие в первом аргументе True(1)'
+				},
+				
+				{
+					text: 'if () {}else{}',opcode: 'ifElseFunc',description: 'Выполнение кода слева если условие в первом аргументе True(1), иначе выполняет условие справа'
+				},
+				/*
+					Математические выражения
+				*/
+				{
+					text: '( ) + ( )',opcode: 'add',description: 'Возвращает сумму двух чисел'
+				},
+				{
+					text: '( ) - ( )',opcode: 'subtract',description: 'Возвращает разность двух чисел'
+				},
+				{
+					text: '( ) * ( )',opcode: 'multiply',description: 'Возвращает произведение двух чисел'
+				},
+				{
+					text: '( ) / ( )',opcode: 'divide',description: 'Возвращает частное двух чисел'
+				},
+				{
+					text: '() ** ()',opcode: 'power',description: 'Возводит число a в степень b'
+				},
+				{
+					text: '() pow ()',opcode: 'power',description: 'Возводит число a в степень b'
+				},
+				{
+					text: '() ^ ()',opcode: 'power',description: 'Возводит число a в степень b'
+				},
+				//Более сложные
+				{
+					text: 'round ( )',opcode: 'round',description: 'Округляет число до ближайшего целого'
+				},
+				{
+					text: 'abs ( )',opcode: 'abs',description: 'Возвращает абсолютное значение числа'
+				},
+				{
+					text: 'floor ( )',opcode: 'floor',description: 'Округляет число в меньшую сторону'
+				},
+				{
+					text: 'sqrt ( )',opcode: 'sqrt',description: 'Возвращает квадратный корень числа'
+				},
+				{
+					text: 'ceiling ( )',opcode: 'ceiling',description: 'Округляет число в большую сторону'
+				},
+				{
+					text: 'cos ( )',opcode: 'cos',description: 'Возвращает косинус угла в радианах'
+				},
+				{
+					text: 'sin ( )',opcode: 'sin',description: 'Возвращает синус угла в радианах'
+				},
+				{
+					text: 'tan ( )',opcode: 'tan',description: 'Возвращает тангенс угла в радианах'
+				},
+				{
+					text: 'asin ( )',opcode: 'asin',description: 'Возвращает арксинус числа'
+				},
+				{
+					text: 'acos ( )',opcode: 'acos',description: 'Возвращает арккосинус числа'
+				},
+				{
+					text: 'atan ( )',opcode: 'atan',description: 'Возвращает арктангенс числа'
+				},
+				{
+					text: 'ln ( )',opcode: 'ln',description: 'Возвращает натуральный логарифм числа'
+				},
+				{
+					text: 'e^ ( )',opcode: 'exp',description: 'Возводит число e в степень аргумента'
+				},
+				{
+					text: 'log10 ( )',opcode: 'log10',description: 'Возвращает десятичный логарифм числа'
+				},
+				{
+					text: 'log ( )',opcode: 'ln',description: 'Возвращает натуральный логарифм числа'
+				},
+				{
+					text: 'random( )',opcode: 'random',description: 'Генерирует случайное число от 0 до указанного значения'
+				},
+				{
+					text: 'trunc ( )',opcode: 'trunc',description: 'Отбрасывает дробную часть числа, оставляя целую'
+				},
+				{
+					text: '( ) mod ( )',opcode: 'ModFunc',description: 'Сравнение ONE с TWO',
+				},
+				{
+					text: 'trunc with digits ( ) of ( )',opcode: 'TruncWithDigits',description: 'Округление числа до знака запятой'
+				},
+				
+				/*
+					Условные выражения
+				*/
+				{
+					text: '( ) > ( )',opcode: 'More',description: '(a) больше (b)?'
+				},
+				{
+					text: '( ) < ( )',opcode: 'Less',description: '(a) меньше (b)?'
+				},
+				{
+					text: '( ) == ( )',opcode: 'Equal',description: '(a) равно (b)?'
+				},
+				{
+					text: '( ) != ( )',opcode: 'NotEqual',description: '(a) не равно (b)?'
+				},
+				{
+					text: '( ) <> ( )',opcode: 'NotEqual',description: '(a) не равно (b)?'
+				},
+				{
+					text: '( ) >< ( )',opcode: 'NotEqual',description: '(a) не равно (b)?'
+				},
+				{
+					text: '( ) >= ( )',opcode: 'MoreOrEqual',description: '(a) больше или равно (b)?'
+				},
+				{
+					text: '( ) <= ( )',opcode: 'LessOrEqual',description: '(a) нменьше или  равно (b)?'
+				},
+				{
+					text: 'not ()',opcode: 'NotFunc',description: '!(req)'
+				},
+				{
+					text: '!()',opcode: 'NotFunc',description: '!(req)'
+				},
+				{
+					text: '( ) and ( )',opcode: 'and_block',description: '(a) и (b) верно?'
+				},
+				{
+					text: '( ) or ( )',opcode: 'or_block',description: '(a) или (b) верно?'
+				},
+				{
+					text: '( ) nand ( )',opcode: 'nand_block',description: '!((a) и (b) верно?)'
+				},
+				{
+					text: '( ) nor ( )',opcode: 'nor_block',description: '!((a) или (b) верно?)'
+				},
+				{
+					text: '( ) xor ( )',opcode: 'xor_block',description: '(a)  не равно (b)?'
+				},
+				{
+					text: '( ) xnor ( )',opcode: 'xnor_block',description: '(a) равно (b)?'
+				},
+				{
+					text: '( ) contains ( )',opcode: 'containsSubstring',description: 'Проверяет, содержит ли строка a подстроку b'
+				},
+				/*TODO: add "()in()" block*/
+				{
+					text: '( ) identical ( )',opcode: 'Equal',description: '(a) равно (b)?'
+				},
+				{
+					text: '( ) is var',opcode: 'isVar',notVarValue: true,description: '(a) является переменной?'
+				},
+				
+				/*
+					Работа со строками
+				*/
+				{
+					text: '( ) join ( )',opcode: 'joinStrings',description: 'Возвращает конкатенацию строк a и b'
+				},
+				{
+					text: 'length( )',opcode: 'length',description: 'Возвращает длину строки или количество цифр в числе'
+				},
+				{
+					text: 'lower ( )',opcode: 'convertToLowercase',description: 'Преобразует строку a в нижний регистр'
+				},
+				{
+					text: 'upper ( )',opcode: 'convertToUppercase',description: 'Преобразует строку a в верхний регистр'
+				},
+				{
+					text: 'letter ( ) of ( )',opcode: 'getCharacterAtIndex',description: 'Возвращает символ строки b по индексу a'
+				},
+				{
+					text: 'letters ( ) to ( ) of ( )',opcode: 'getSubstringFromRange',description: 'Возвращает подстроку c с индексами из диапазона [a..b]'
+				},
+				{
+					text: 'item ( ) split by ( ) of ( )',opcode: 'getItemFromSplit',description: 'Возвращает подстроку #a из разделения строки c подстрокой b'
+				},
+				{
+					text: 'replace ( ) with ( ) of ( )',opcode: 'replaceSubstring',description: 'Заменяет все вхождения подстроки a на подстроку b в строке c'
+				},
+				{
+					text: 'count ( ) of ( )',opcode: 'countSubstrings',description: 'Возвращает количество подстрок a в строке b'
+				},
+				{
+					text: 'index ( ) of ( )',opcode: 'indexOfSubstring',description: 'Возвращает индекс первого вхождения подстроки a в строку b'
+				},
+				
+				/*
+					Работа с переменными
+				*/
+				/*{
+					text: 'var()',
+					opcode: 'getVar',
+					notVarValue: true, //Не находить значение переменной
+					description: 'Получить значение переменной',
+				},*/
+				{
+					text: '()=()',
+					opcode: 'setVar',
+					notVarValue: true,
+					description: 'Задать значение для переменной',
+				},
+				{
+					text: '()+=()',
+					opcode: 'summVar',
+					notVarValue: true,
+					description: 'Добавить значение для переменной',
+				},
+				{
+					text: '()-=()',
+					opcode: 'subtractVar',
+					notVarValue: true,
+					description: 'Убавить значение для переменной',
+				},
+				{
+					text: '()*=()',
+					opcode: 'multiplyVar',
+					notVarValue: true,
+					description: 'Умножить значение для переменной',
+				},
+				{
+					text: '()/=()',
+					opcode: 'divideVar',
+					notVarValue: true,
+					description: 'Разделить значение для переменной',
+				},
+				{
+					text: '()^=()',
+					opcode: 'powerVar',
+					notVarValue: true,
+					description: 'Разделить значение для переменной',
+				},
+			]
+		}
+	}
+	
+	/*
+		Функции модуля
+	*/
+	
+	//Циклы
+	
+	//TODO: добавить return
+	returnFunc(args){
+		returnValue++;
+		return args[0];
+	};
+	rys(_args,_commands){
+		let 
+			commandReturnValue = returnValue;
+			result;
+			
+		result = startNewCommandsArray(_commands,commandReturnValue);
+		debug? console.log(args,commands):"";
+		return result;
+	};
+	repeatFunc(args){
+		//console.log (`repeat args: `);
+		//console.log (args);
+		let repeatNum = newParser(args[0]);
+		let result;
+		let commandReturnValue = returnValue;
+		let commandsArray = (args[1]);
+		for (let i = 0; i < repeatNum; i++){
+			result = startNewCommandsArray(commandsArray,commandReturnValue);
+			//console.log(commandsArray);
+			if (returnValue!=commandReturnValue) {
+				returnValue--;
+				break;
+			}
+		};
+		return result;
+	}
+	ifFunc(args){
+		//console.log(args);
+		if (	(args[0])===1) {
+			let result;
+			let commandsArray = args[1];
+			let commandReturnValue = returnValue;
+			return startNewCommandsArray(commandsArray,commandReturnValue);
+		}
+	};
+	ifElseFunc(args){
+		let result;
+		let commandReturnValue = returnValue;
+		let commandsArray
+		if (newParser(args[0])===1) {
+			commandsArray = args[1];
+		} else {
+			commandsArray = args[2];
+		}	
+		return startNewCommandsArray(commandsArray,commandReturnValue);
+	};
+	
+	/*
+		Математические выражения
+	*/
+	add(args) {
+		return args[0] + args[1];
+	};
+	subtract(args) {
+		return args[0] - args[1];
+	};
+	multiply(args) {
+		return args[0] * args[1];
+	};
+	divide(args) {
+		if (args[1] === 0) {
+			throw new Error("Деление на ноль");
+		}
+		return args[0] / args[1];
+	};
+	power(args){
+        return args[0] ** args[1];
+	};
+	//Более сложные
+	round(args) {
+		return Math.round(args[0]);
+	};
+	abs(args) {
+		return Math.abs(args[0]);
+	};
+	floor(args) {
+		return Math.floor(args[0]);
+	};
+	sqrt(args) {
+		return Math.sqrt(args[0]);
+	};
+	ceiling(args) {
+		return Math.ceil(args[0]);
+	};
+	cos(args) {
+		return Math.cos(args[0]);
+	};
+	sin(args) {
+		return Math.sin(args[0]);
+	};
+	tan(args) {
+		return Math.tan(args[0]);
+	};
+	asin(args) {
+		return Math.asin(args[0]);
+	};
+	acos(args) {
+		return Math.acos(args[0]);
+	};
+	atan(args) {
+		return Math.atan(args[0]);
+	};
+	ln(args) {
+		return Math.log(args[0]);
+	};
+	exp(args) {
+		return Math.exp(args[0]);
+	};
+	log10(args) {
+		return Math.log10(args[0]);
+	};
+	random(args) { //TODO!: Сделать округление до целого числа
+		return Math.random() * (args[0] - 0) + 0; // Генерация случайного числа от 0 до args[0]
+	};
+	trunc(args) {
+		return Math.trunc(args[0]);
+	};
+	ModFunc(args){
+		return (args[0]%args[1]);
+	};
+	TruncWithDigits(args) {
+		let n = Math.floor(cast.toNumber(args[1]));
+		if (n >= 1) {
+			n = 10 ** n;
+			if (n !== Infinity) {
+				return Math.trunc(cast.toNumber(args[0]) * n) / n;
+			}
+			return cast.toNumber(args[0]);
+		}
+		return Math.trunc(cast.toNumber(args[0]));
+	};
+	
+	/*
+		Условные выражения
+	*/
+	More(args) {
+		return (args[0]>args[1]?1:0); 
+	};
+	Less(args) {
+		return (args[0]<args[1]?1:0); 
+	};
+	Equal(args){
+		return(args[0]==args[1]?1:0);
+	};
+	NotEqual(args) {
+		return(args[0]!=args[1]?1:0);
+	};
+	MoreOrEqual(args) {
+		return (args[0]>=args[1]?1:0); 
+	};
+	LessOrEqual(args) {
+		return (args[0]<=args[1]?1:0); 
+	};
+	NotFunc(args) {
+		return args[0] == 1? 0:1;	
+	};
+	and_block(args) {
+		return(args[0]&&args[1]?1:0);
+	};
+	or_block(args) {
+		return(args[0]||args[1]?1:0);
+	};
+
+	nand_block(args) {
+		return (!(cast.toBoolean(args[0]) && cast.toBoolean(args[1]))?1:0);
+    };
+
+	nor_block(args) {
+		return (!(cast.toBoolean(args[0]) || cast.toBoolean(args[1]))?1:0);
+    };
+
+    xor_block(args) {
+		return (cast.toBoolean(args[0]) !== cast.toBoolean(args[1])?1:0);
+    };
+
+    xnor_block(args) {
+		return (cast.toBoolean(args[0]) === cast.toBoolean(args[1])?1:0);
+    };
+	containsSubstring(args) {
+        return (args[0]).toString().includes(args[1].toString()) ? 1 : 0;
+    };
+	isVar(args){
+		//console.log(args);
+		//console.log (variablesDict);
+		//console.log (args[0]);
+		return (variablesMap.has(args[0])?1:0);
+	};
+
+//opcode: 'inFunc', //Новый блок
+
+	/*
+		Работа со строками
+	*/
+	joinStrings(args) {
+        return args[0].toString() + args[1].toString();
+    };
+	length(args) {
+		return String(args[0]).length; // Преобразует в строку и возвращает длину
+	};
+	convertToLowercase(args) {
+        return args[0].toString().toLowerCase();
+    };
+    convertToUppercase(args) {
+        return args[0].toString().toUpperCase();
+    };
+	getCharacterAtIndex(args) {
+        if (args[0] < 0 || args[0] >= args[1].toString().length) {
+            throw new Error("Index out of bounds");
+        }
+        return args[1].toString().charAt(args[0]);
+    };
+	getSubstringFromRange(args) {
+        if (args[0] < 0 || args[1] >= args[2].length || args[0] > args[1] ) {
+            throw new Error("Invalid range");
+        }
+        return args[2].substring(args[0], args[1] + 1);
+    };
+	getItemFromSplit(args) {
+        const parts = args[2].split(args[1]);
+        if (args[0] < 0 || args[0] >= parts.length) {
+            throw new Error("Index out of bounds");
+        }
+        return parts[args[0]];
+    };
+	replaceSubstring(args) {
+        return args[2].split(args[0]).join(args[1]);
+    };
+	countSubstrings(args) {
+        if (!args[0]) {
+            throw new Error("Empty substring provided");
+        }
+        return args[1].toString().split(args[0].toString()).length - 1;
+    };
+    indexOfSubstring(args) {
+        return args[1].toString().indexOf(args[0].toString());
+    };
+
+	/*
+		Работа с переменными
+	*/
+	getVar(args){
+		getVarValue(args[0]);
+	};
+	setVar(args){
+		return setVarValue(args[0],args[1]);
+	};
+	summVar(args){
+		//console.log(args);
+		return setVarValue(args[0],getVarValue(args[0])+args[1]);
+	};
+	subtractVar(args){
+		return setVarValue(args[0],getVarValue(args[0])-args[1]);
+	};
+	multiplyVar(args){
+		return setVarValue(args[0],getVarValue(args[0])*args[1]);
+	};
+	divideVar(args){
+		return setVarValue(args[0],getVarValue(args[0])/args[1]);
+	};
+	powerVar(args){
+		return setVarValue(args[0],getVarValue(args[0])**args[1]);
+	};
+}
+ext.register(baseModule);
+/*End Modules*/
+
+
+
 
 
 const submitButton = document.getElementById('submitButton');
@@ -280,6 +932,7 @@ submitButton.addEventListener('click', function() {
 	//const processedText = value
 	let openedBrackets = openAllBrackets(editTextElement.value);
 	console.log(openedBrackets);
+	console.log(parser(openedBrackets))
 });
 
 </script>

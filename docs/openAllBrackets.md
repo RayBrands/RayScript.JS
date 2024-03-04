@@ -1,6 +1,6 @@
 # openAllBrackets(_text)
 Функция openAllBrackets (155 строк)
- TODO: сделать работу с [массивами]
+TODO: сделать работу с [массивами]
  
  ----
  
