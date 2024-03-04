@@ -25,69 +25,42 @@ function hasNestedArray(arg) { //Проверка того, что в масси
     return arg instanceof Array
 }
 
-function openTypeBrackets(_text, _charOpenBracket, _charClosedBracket){
-    let 
-		bracketCount = 1, 
-		resultText = "",
-		itText = false,
-		text=_text;
-		
-	const bracketCharDict = {
-		[_charOpenBracket]: 1,
-		[_charClosedBracket]: -1
-	}
+/*
+ Функция openAllBrackets (155 строк)
+ TODO: сделать работу с [массивами]
+ 
+ args:
+	_text -> текст кода RayScript
 	
-	for (;(bracketCount > 0)&&(text.length>0);){
-		let char = text[0];
-		bracketCount += bracketCharDict[char] ?? 0;
-		if (bracketCount===0) {break}
-        resultText+=char;
-		text = text.slice(1)
-	}
-	
-	if (bracketCount >= 1) {
-		debug?  console.warn(`\n[Warning] In opening the brackets of the text: "${_charOpenBracket+_text}"\nThe number of open and closed brackets does not match, ignoring char "${_charOpenBracket}"`) :"";
-		itText = true
-	}
-	
-	return {
-		text: resultText, 
-		itText: itText
-	}
-};
+ functions:
 
-function openCommandBracket(_text){
-	let 
-		result = [],
-		text = _text,
-		bracketsCount = 0,
-		commandText = "",
-		bracketCharDict = {
-			"{": 1,
-			"}": -1
-		};
+	openCommandBracket(_text): 
+		создаёт массив из комманд внутри {} скобок
 		
-	function pushCommand(){
-		commandText.trim().length>0?result.push(commandText):"";//проверка на пустое значение
-		commandText=""
-	}
-	
-	for (;(text.length>0);) {
-		let char = text[0];
+	openTypeBrackets(_text, _charOpenBracket, _charClosedBracket): 
+		раскрывает скобки (_charOpenBracket, _charClosedBracket), 
+		возвращает весь текст внутри скобок, иначе предупреждает о том, 
+		что текст не в скобках (предупреждение)
 		
-		bracketsCount += bracketCharDict[char] ?? 0;
+	сaseArgBracket():
+		вставить значение аргумента в массив аргументов result.args
+		
+	caseCommandBracket():
+		вставить значение массива команд в массив команд result.commands
+		
+	getType():
+		возвращает тип открытых скобок (funcCommands, func, str, float)
+		удаляет ненужные return значения (args, commands, text)
 
-		if ((char === "\n")&&(bracketsCount===0)){
-			pushCommand()
-		} else {
-			commandText+=char
-		}
-		text = text.slice(1)
+ return:
+	{
+	type  		-> тип данных открытых скобок (funcCommands, func, str, float)
+	text?  		-> текст строки/команды
+	args?  		-> массив из аргументов
+	commands? 	-> массив из массива команд
+	value? 		-> float значение text
 	}
-	
-	return result
-}
-
+*/
 function openAllBrackets(_text) {
 	let 
 		result = {
@@ -97,8 +70,71 @@ function openAllBrackets(_text) {
 			type: "" //str(str,var,float),func,funcCommands
 		},
 		text = _text;
+	
+	function openCommandBracket(_text){
+		let 
+			result = [],
+			text = _text,
+			bracketsCount = 0,
+			commandText = "",
+			bracketCharDict = {
+				"{": 1,
+				"}": -1
+			};
+			
+		function pushCommand(){
+			commandText.trim().length>0?result.push(commandText):"";//проверка на пустое значение
+			commandText=""
+		}
 		
-	function argBracket(){
+		for (;(text.length>0);) {
+			let char = text[0];
+			
+			bracketsCount += bracketCharDict[char] ?? 0;
+
+			if ((char === "\n")&&(bracketsCount===0)){
+				pushCommand()
+			} else {
+				commandText+=char
+			}
+			text = text.slice(1)
+		}
+		
+		return result
+	}
+	
+	function openTypeBrackets(_text, _charOpenBracket, _charClosedBracket){
+		let 
+			bracketCount = 1, 
+			resultText = "",
+			itText = false,
+			text=_text;
+			
+		const bracketCharDict = {
+			[_charOpenBracket]: 1,
+			[_charClosedBracket]: -1
+		}
+		
+		for (;(bracketCount > 0)&&(text.length>0);){
+			let char = text[0];
+			bracketCount += bracketCharDict[char] ?? 0;
+			if (bracketCount===0) {break}
+			resultText+=char;
+			text = text.slice(1)
+		}
+		
+		if (bracketCount >= 1) {
+			debug?  console.warn(`\n[Warning] In opening the brackets of the text: "${_charOpenBracket+_text}"\nThe number of open and closed brackets does not match, ignoring char "${_charOpenBracket}"`) :"";
+			itText = true
+		}
+		
+		return {
+			text: resultText, 
+			itText: itText
+		}
+	};
+		
+	function сaseArgBracket(){
 		let 
 			argResult = openTypeBrackets(text,"(",")");
 		
@@ -110,7 +146,7 @@ function openAllBrackets(_text) {
 		}
 	}
 	 
-	function commandBracket(){
+	function caseCommandBracket(){
 		let 
 			commandResult = openTypeBrackets(text,"{","}");
 				
@@ -125,8 +161,6 @@ function openAllBrackets(_text) {
 		}
 	}
 	
-	
-	
 	for (;(text.length>0);) {
 	
 		let char = text[0];
@@ -136,12 +170,12 @@ function openAllBrackets(_text) {
 		
 			case "arg":
 				text = text.slice(1);
-				argBracket();
+				caseArgBracket();
 				break;
 				
 			case "command":
 				text = text.slice(1);
-				commandBracket();
+				caseCommandBracket();
 				break;
 				
 			case "array":
@@ -182,7 +216,62 @@ function openAllBrackets(_text) {
 	
 	result.type = getType();
 	return result
-};	
+}
+
+/*
+ Класс extensions
+ //TODO: Сделать проверку кол-ва аргументов,  ??задать тип данных для работы с блоками
+ Принимает модуль, добавляет команды в commands
+ Добавляет значения блоков в blocks (Распределяя по классам)
+ modules содержит все подключённые модули а также их описание, color и ссылка на документацию
+*/
+class extensions {
+  constructor() {
+    this.commands = new Map();
+    this.blocks = new Map();
+    this.modules = new Map();
+  }
+
+  register(clazz) { //Регистрация нового модуля
+    if (isNotClassValid(clazz)) {
+      throw new Error('Invalid class: ' + clazz.name);
+    }
+    const info = clazz.prototype.getInfo();
+    const moduleInfo = {
+        name: info.name,
+        color: info.color, // pure red
+        docsURI: info.docsURI, //Документация к модулю
+		description: info.description //краткое описание модуля
+    }
+    this.modules.set(info.id, moduleInfo);
+
+    // Registration code remains the same
+    // Регистрация блоков
+      for (const block of info.blocks) {
+        //Регистрация команд
+        const key = block.text.replace(/\s/g, ''); // Ключ без пробелов
+		
+        this.commands.set(openBrackets(key).text.toLowerCase(), {
+          id: info.id,
+          opcode: block.opcode,
+		  type: openBrackets(key).type,
+          args: block.args,
+		  notVarValue: block.notVarValue,
+		  func: clazz.prototype[block.opcode]  //возможно стоит изменить это
+        });
+        //Регистрация блоков
+        const blocksForClass = this.blocks.get(info.id) || {};
+        blocksForClass[block.text] = {
+          type: block.type,
+          description: block.description,
+          args: block.args
+        };
+        this.blocks.set(info.id, blocksForClass);
+      }
+      return this;
+  }
+}
+
 
 const submitButton = document.getElementById('submitButton');
 const editTextElement = document.querySelector('textarea');
