@@ -1,21 +1,10 @@
-<!-- 
-
-Welcome to GDB Online.
-GDB online is an online compiler and debugger tool for C, C++, Python, Java, PHP, Ruby, Perl,
-C#, OCaml, VB, Swift, Pascal, Fortran, Haskell, Objective-C, Assembly, HTML, CSS, JS, SQLite, Prolog.
-Code, Compile, Run and Debug online from anywhere in world.
-
--->
-
 <html>
 <body>
 <textarea id="editText" rows="10" cols="50"></textarea>
 <button id="submitButton">compile</button>
 <button id="startButton">Start</button>  
+
 <script>
-
-
-
 const 
 	debug = true;
 
@@ -31,11 +20,6 @@ function setVarValue(_name, _value) {
 function getVarValue(_name) {
 	return variablesMap.get(_name) ?? 0
 }
-
-
-/*function hasNestedArray(arg) { //Проверка того, что в массиве есть массив
-    return arg instanceof Array
-}*/
 
 /*
  Функция openAllBrackets (155 строк)
@@ -356,7 +340,7 @@ Parser должен по идее выдавать объект из коман�
 		let 
 			command =  ext.commands.get(_data.text),
 			data = {
-				func: command? command.func: false,
+				func: command? command.func.toString().replace(/[\t\n]/g, ""): false,
 				notVarValue: command? command.notVarValue : false,
 				args_type: command? command.args_type: false,
 				args: _data.args,
@@ -639,7 +623,7 @@ submitButton.addEventListener('click',  function() {
 	dictOpenedBrackets = JSON.parse(openedBrackets);
 	console.log(openedBrackets);
 	parseredBrackets =  JSON.stringify(parser(dictOpenedBrackets));
-	console.log(parseredBrackets);
+	console.log(JSON.parse(parseredBrackets));
 });
 startButton.addEventListener('click',  function() { 
 	const startTime = Date.now();
