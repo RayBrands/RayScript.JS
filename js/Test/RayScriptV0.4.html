@@ -164,7 +164,7 @@ function getVarValue(_name) {
 			result.text += "(";
 		} else {
 			text = text.slice(argResult.text.length+1);
-			let openedArg =  openAllBrackets(argResult.text);
+			let openedArg =  argResult.text; ///openAllBrackets();
 			result.args.push(openedArg); //TODO: добавить условие для добавление аргумента (Проверка на пустое значение);
 		}
 	}
@@ -182,7 +182,7 @@ function getVarValue(_name) {
 			let openedBrackets =  openCommandBracket(commandResult.text);
 			
 			for (let i = 0; i < openedBrackets.length; i++) {
-				let command =  openAllBrackets(openedBrackets[i]);
+				let command =  openedBrackets[i];
 				commandsArray.push(command)
 			}
 			result.commands.push(commandsArray)
@@ -240,37 +240,53 @@ function getVarValue(_name) {
 	 function getType(){
 		if ((result.commands).length){
 			result.text = result.text.replace(/[\s\t\n]/g, "").toLowerCase();
-			return "funcCommands"
+			return {
+				text: result.text,
+				args: result.args.map ((element) => {
+					return openAllBrackets(element);
+				}),
+				commands: result.commands.map ((commandsArrayElement) => {
+					return commandsArrayElement.map((command) => {
+						//console.log(command);
+						return openAllBrackets(command)
+					})
+				}),
+				type: "fyncCommands"
+			}
 		} else if ((result.args).length){
-			result.text = result.text.replace(/[\s\t\n]/g, "").toLowerCase();
-			delete result.commands;
-			
-			if(!result.text.length){
+			result.text = result.text.replace(/[\s\t\n]/g, "").toLowerCase();			
+			/*if(!result.text.length){
 				result = (result.args[0])
 				return  result.type;
+			}*/
+			return {
+				arg_type: 0,
+				text: result.text,
+				args: result.args.map ((element) => {
+					return openAllBrackets(element);
+				}),
+				type: "func" //str(str,var,float),func,funcCommands, commandsList
 			}
-			result["arg_type"] = 0;
-			return "func"
 		}
-		
-		delete result.args;
-		delete result.commands;
 		
 		function isNum(_str) {
 			return !isNaN(parseFloat(_str))
 		}
 		
 		if (isNum(result.text)){
-			result["value"] = parseFloat(result.text);
-			delete result.text;
-			return "float"
+			return {
+				value: parseFloat(result.text),
+				type: "float"
+			}
 		}
-		result.text = result.text.trim();
-		return "str"
+		return {
+			text: result.text.trim(),
+			type: "str"
+		}
 	}
 	
 	
-	result.type =  getType();
+	return getType();
 	
 	/*if (isCommandsText===true){
 		newCommandResult.push(result);
@@ -279,7 +295,6 @@ function getVarValue(_name) {
 			type: "commandsList" //str(str,var,float),func,funcCommands, commandsList
 		}
 	} */
-	return  result
 }
 
 /*Вызов функции с аргументами и командами*/
@@ -616,23 +631,25 @@ const submitButton = document.getElementById('submitButton');
 const startButton = document.getElementById('startButton');
 const editTextElement = document.querySelector('textarea');
 var parseredBrackets = "";
+let openedBrackets;
 submitButton.addEventListener('click',  function() { 
 	const startTime = Date.now();
 	returnValue = 0;
-	let openedBrackets;
-	openedBrackets =  openAllBrackets(editTextElement.value)
+	openedBrackets = JSON.stringify(openAllBrackets(editTextElement.value))
+	dictOpenedBrackets = JSON.parse(openedBrackets);
 	console.log(openedBrackets);
-	parseredBrackets =  parser(openedBrackets);
+	parseredBrackets =  JSON.stringify(parser(dictOpenedBrackets));
 	console.log(parseredBrackets);
 });
 startButton.addEventListener('click',  function() { 
 	const startTime = Date.now();
 	returnValue = 0;
-	const data = parseredBrackets
-	console.log(data);
-	let runned =  run(data);
-	console.log(data);
-	console.log(runned);
+	function start(_data){
+		let runned =  run(_data);
+		console.log(_data);
+		console.log(runned);
+	}
+	start(parseredBrackets);
 });
 var ext;
  function main(){
