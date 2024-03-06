@@ -283,7 +283,7 @@ function getVarValue(_name) {
 
 /*Вызов функции с аргументами и командами*/
  function callFunction(_func, _data={args:[],commands:[],type:"func"}) {//TODO: Сделать описание и сделать проверку функций и аргументов, представленных внизу
-	//debug? console.log(_func):"";
+	debug? console.log(_func):"";
 	let 
 		result,
 		data=_data;
@@ -340,7 +340,7 @@ Parser должен по идее выдавать объект из коман�
 		let 
 			command =  ext.commands.get(_data.text),
 			data = {
-				func: command? command.func.toString().replace(/[\t\n]/g, ""): false,
+				func: command? ("function ") + (command.func.toString().replace(/[\t\n]/g, "")): false,
 				notVarValue: command? command.notVarValue : false,
 				args_type: command? command.args_type: false,
 				args: _data.args,
@@ -487,7 +487,7 @@ Return:
 		 getArgs();
 
 		return callFunction(
-			_data.func,
+			(_data.func),
 			{
 				args:args,
 				type:_data.type
@@ -504,7 +504,7 @@ Return:
 	
 	 function caseFuncCommands(){
 		return  callFunction(
-			_data.func,
+			(_data.func),
 			{
 				args:_data.args,
 				type:_data.type,
@@ -629,7 +629,7 @@ startButton.addEventListener('click',  function() {
 	const startTime = Date.now();
 	returnValue = 0;
 	function start(_data){
-		let runned =  run(_data);
+		let runned =  run(JSON.parse(_data));
 		console.log(_data);
 		console.log(runned);
 	}
