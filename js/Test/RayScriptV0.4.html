@@ -5,6 +5,9 @@
 <button id="startButton">Start</button>  
 
 <script>
+
+//TODO:Заменить стиль кода, сделать нормальный стиль кода
+
 const 
 	debug = true;
 
@@ -86,7 +89,7 @@ function getVarValue(_name) {
 				"}": -1
 			};
 			
-		 function pushCommand(){
+		function pushCommand(){
 			commandText.trim().length>0?result.push(commandText):"";//проверка на пустое значение
 			commandText=""
 		}
@@ -104,7 +107,7 @@ function getVarValue(_name) {
 			text = text.slice(1)
 		}
 		
-		 pushCommand();
+		pushCommand();
 		
 		return  result
 	}
@@ -227,12 +230,12 @@ function getVarValue(_name) {
 			return {
 				text: result.text,
 				args: result.args.map ((element) => {
-					return openAllBrackets(element);
+					return JSON.stringify(openAllBrackets(element));
 				}),
 				commands: result.commands.map ((commandsArrayElement) => {
 					return commandsArrayElement.map((command) => {
 						//console.log(command);
-						return openAllBrackets(command)
+						return JSON.stringify(openAllBrackets(command))
 					})
 				}),
 				type: "fyncCommands"
@@ -247,7 +250,7 @@ function getVarValue(_name) {
 				arg_type: 0,
 				text: result.text,
 				args: result.args.map ((element) => {
-					return openAllBrackets(element);
+					return JSON.stringify(openAllBrackets(element));
 				}),
 				type: "func" //str(str,var,float),func,funcCommands, commandsList
 			}
@@ -284,6 +287,7 @@ function getVarValue(_name) {
 /*Вызов функции с аргументами и командами*/
  function callFunction(_func, _data={args:[],commands:[],type:"func"}) {//TODO: Сделать описание и сделать проверку функций и аргументов, представленных внизу
 	debug? console.log(_func):"";
+	debug? console.log(_data):"";
 	let 
 		result,
 		data=_data;
@@ -320,14 +324,14 @@ Parser должен по идее выдавать объект из коман�
 
 */
  function parser(_data){
-	//console.log(`Parser have _data:`);
-	//console.log(_data);
+	console.log(`Parser have _data:`);
+	console.log(_data);
 	let result;
 	switch (_data.type?? "default") {	
 		case "func":
 			return  caseFunc()//TODO?
 			
-		case "funcCommands":
+		case "fyncCommands":
 			return  caseFuncCommands()//TODO?
 			
 		case "commandsList":
@@ -391,7 +395,7 @@ Parser должен по идее выдавать объект из коман�
 		 parseCommandsArray();
 		 checkCustomBlocks();
 
-		return  result;
+		return result;
 		
 		/*===*/
 		
@@ -428,7 +432,8 @@ Parser должен по идее выдавать объект из коман�
 				выполнить проверку внутри блока на кол-во аргументов и т.п.)
 				*/
 			} else {
-				result.func = command.func;
+				result.func = ("function ") + ((command.func).toString().replace(/[\t\n]/g, ""));
+				debug? console.warn(result.func):"";
 			}
 			
 		}
@@ -456,8 +461,8 @@ Return:
 	Выполненный код, вывод результата
 */
  function run(_data){
-	
-	//console.warn(_data);
+	console.log("run gave _data");
+	console.warn(_data);
 	
 	//TODO: убрать комментарии с Parser после написания этого блока
 	switch (_data.type?? "default") {	
@@ -482,14 +487,14 @@ Return:
 	
 	 function caseFunc(){
 		let
-			args = _data.args;
+			args = JSON.stringify(_data.args);
 			
-		 getArgs();
+		getArgs();
 
 		return callFunction(
-			(_data.func),
+			eval(`(${_data.func})`),
 			{
-				args:args,
+				args:JSON.parse(args),
 				type:_data.type
 			}
 		);
@@ -503,12 +508,16 @@ Return:
 	}
 	
 	 function caseFuncCommands(){
+		let
+			args = JSON.stringify(_data.args),
+			commands = JSON.stringify(_data.commands);
+			
 		return  callFunction(
-			(_data.func),
+			eval(`(${_data.func})`),
 			{
-				args:_data.args,
+				args:JSON.parse(args),
 				type:_data.type,
-				commands:_data.commands
+				commands:JSON.parse(commands)
 			}
 		);
 	}
@@ -619,11 +628,13 @@ let openedBrackets;
 submitButton.addEventListener('click',  function() { 
 	const startTime = Date.now();
 	returnValue = 0;
-	openedBrackets = JSON.stringify(openAllBrackets(editTextElement.value))
+	openedBrackets = JSON.stringify(openAllBrackets(editTextElement.value));
 	dictOpenedBrackets = JSON.parse(openedBrackets);
 	console.log(openedBrackets);
-	parseredBrackets =  JSON.stringify(parser(dictOpenedBrackets));
-	console.log(JSON.parse(parseredBrackets));
+	console.log(JSON.parse(dictOpenedBrackets.commands[0][0]));
+	
+	//parseredBrackets =  JSON.stringify(parser(dictOpenedBrackets));
+	//console.log(JSON.parse(parseredBrackets));
 });
 startButton.addEventListener('click',  function() { 
 	const startTime = Date.now();
