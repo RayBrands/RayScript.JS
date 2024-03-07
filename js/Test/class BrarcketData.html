@@ -52,7 +52,7 @@ class BracketData {
     this._Type = Type,
     this._Func = Func,
     this._ArgsType = ArgsType,
-	this._Value = Value;	
+	  this._Value = Value;	
   }
   
   // Геттеры
@@ -152,8 +152,211 @@ class BracketData {
   }
 }
 
+function openAllBrackets(_text) {
+  let 
+		result = {
+			text: "",
+			args: [],
+			commands: [],
+			type: "" //str(str,var,float),func,funcCommands, commandsList
+		},
+		newCommandResult = [], //Array of commands
+		typeBracket = {
+			"(": "arg",
+			"[": "array",
+			"{": "command",
+			//"\n": "newCommand"
+		},
+		text = _text,
+		isCommandsText = false;
 
-const result = addFunction([2, 3]);
+  main();
+  return getType();
+
+  //====
+
+  function main(){
+    for (;((text).length>0);) {
+      let char = text[0];
+      //debug? console.log(`text = ${text}`):"";
+      
+      switch (typeBracket[char] ?? "default") {
+      
+        case "arg":
+          text = text.slice(1);
+          caseArgBracket();
+          break;
+          
+        case "command":
+          text = text.slice(1);
+          caseCommandBracket();
+          break;
+          
+        case "array": //TODO: сделать работу с массивами
+          break;
+          
+        /*case "newCommand":
+          text = text.slice(1);
+          caseNewCommandChar();
+          break;*/
+          
+        case "default":
+          result.text += char;
+          text = text.slice(1);
+          break;
+          
+      }
+    }
+  }
+	
+	function openCommandBracket(_text){
+		let 
+			result = [],
+			text = _text,
+			bracketsCount = 0,
+			commandText = "",
+			bracketCharDict = {
+				"{": 1,
+				"}": -1
+			};
+			
+		function pushCommand(){
+			commandText.trim().length>0?result.push(commandText):"";//проверка на пустое значение
+			commandText=""
+		}
+		
+		for (;(text.length>0);) {
+			let char = text[0];
+			
+			bracketsCount += bracketCharDict[char] ?? 0;
+
+			if ((char === "\n")&&(bracketsCount===0)){
+				 pushCommand()
+			} else {
+				commandText+=char
+			}
+			text = text.slice(1)
+		}
+		
+		pushCommand();
+		
+		return  result
+	}
+	
+	function openTypeBrackets(_text, _charOpenBracket, _charClosedBracket){
+		let 
+			bracketCount = 1, 
+			resultText = "",
+			itText = false,
+			text=_text;
+			
+		const bracketCharDict = {
+			[_charOpenBracket]: 1,
+			[_charClosedBracket]: -1
+		}
+		
+		for (;(bracketCount > 0)&&(text.length>0);){
+			let char = text[0];
+			bracketCount += bracketCharDict[char] ?? 0;
+			if (bracketCount===0) {break}
+			resultText+=char;
+			text = text.slice(1)
+		}
+		
+		if (bracketCount >= 1) {
+			debug?  console.warn(`\n[Warning] In opening the brackets of the text: "${_charOpenBracket+_text}"\nThe number of open and closed brackets does not match, ignoring char "${_charOpenBracket}"`) :"";
+			itText = true
+		}
+		
+		return {
+			text: resultText, 
+			itText: itText
+		}
+	};
+		
+	function caseArgBracket(){
+		let 
+			argResult =  openTypeBrackets(text,"(",")");
+		
+		if (argResult.itText){
+			result.text += "(";
+		} else {
+			text = text.slice(argResult.text.length+1);
+			let openedArg =  argResult.text; ///openAllBrackets();
+			result.args.push(openedArg); //TODO: добавить условие для добавление аргумента (Проверка на пустое значение);
+		}
+	}
+			
+	function caseCommandBracket(){
+		let 
+			commandResult =  openTypeBrackets(text,"{","}");
+				
+		if (commandResult.itText){
+			result.text += "{";
+		} else {
+			let commandsArray = [];
+			
+			text = text.slice(commandResult.text.length+1);
+			let openedBrackets =  openCommandBracket(commandResult.text);
+			
+			for (let i = 0; i < openedBrackets.length; i++) {
+				let command =  openedBrackets[i];
+				commandsArray.push(command)
+			}
+			result.commands.push(commandsArray)
+		}
+	}
+	
+	function getType(){
+		if ((result.commands).length){
+			result.text = result.text.replace(/[\s\t\n]/g, "").toLowerCase();
+			return {
+				text: result.text,
+				args: result.args.map ((element) => {
+					return JSON.stringify(openAllBrackets(element));
+				}),
+				commands: result.commands.map ((commandsArrayElement) => {
+					return commandsArrayElement.map((command) => {
+						//console.log(command);
+						return JSON.stringify(openAllBrackets(command))
+					})
+				}),
+				type: "fyncCommands"
+			}
+		} else if ((result.args).length){
+			result.text = result.text.replace(/[\s\t\n]/g, "").toLowerCase();			
+			/*if(!result.text.length){
+				result = (result.args[0])
+				return  result.type;
+			}*/
+			return {
+				arg_type: 0,
+				text: result.text,
+				args: result.args.map ((element) => {
+					return JSON.stringify(openAllBrackets(element));
+				}),
+				type: "func" //str(str,var,float),func,funcCommands, commandsList
+			}
+		}
+		
+		function isNum(_str) {
+			return !isNaN(parseFloat(_str))
+		}
+		
+		if (isNum(result.text)){
+			return {
+				value: parseFloat(result.text),
+				type: "float"
+			}
+		}
+		return {
+			text: result.text.trim(),
+			type: "str"
+		}
+	}
+}
+
+const result = "";
 
 console.log(result); // Выведет 5
 </script>
