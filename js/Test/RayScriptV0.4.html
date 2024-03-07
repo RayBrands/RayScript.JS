@@ -24,6 +24,114 @@ function getVarValue(_name) {
 	return variablesMap.get(_name) ?? 0
 }
 
+class BracketData {
+  constructor(Text = "", Args = [], Commands = [], Type = "", Func = "", ArgsType = [], Value = 0) {
+    this._Text = Text,
+    this._Args = Args,
+    this._Commands = Commands,
+    this._Type = Type,
+    this._Func = Func,
+    this._ArgsType = ArgsType,
+	this._Value = Value;	
+  }
+  
+  // Геттеры
+  get Text() {
+    return this._Text
+  }
+
+  get Args() {
+    return this._Args
+  }
+
+  get Commands() {
+    return this._Commands
+  }
+
+  get Type() {
+    return this._Type
+  }
+
+  get Func() {
+    return this._Func
+  }
+
+  get ArgsType() {
+    return this._ArgsType
+  }
+  
+  get Value(){
+	return this._Value
+  }
+
+  // Сеттеры
+  setText(Text) {
+    this._Text = Text
+  }
+
+  setArgs(Args) {
+    this._Args = Args
+  }
+  
+  setCommands(Commands) {
+    this._Commands = Commands
+  }
+  
+  setType(Type) {
+    this._Type = Type
+  }
+
+  setFunc(Func) {
+    this._Func = Func
+  }
+
+  setArgsType(ArgsType) {
+    this._ArgsType = ArgsType
+  }
+  
+  setValue(Value){
+    this._Value = Value
+  }
+  
+  //add
+  addArg(Arg){
+    this._Args.push(Arg)
+  } 
+
+  addCommands(CommandsArray){
+	this._Commands.push(CommandsArray)
+  }  
+
+  // Деструкторы
+  deleteText() {
+    this._Text = null
+  }
+
+  deleteArgs() {
+    this._Args = null
+  }
+
+  deleteCommands() {
+    this._Commands = null
+  }
+
+  deleteType() {
+    this._Type = null
+  }
+
+  deleteFunc() {
+    this._Func = null
+  }
+
+  deleteArgsType() {
+    this._ArgsType = null
+  }
+  
+  deleteValue(){
+    this._Value = null
+  }
+}
+
 /*
  Функция openAllBrackets (155 строк)
  TODO: сделать работу с [массивами]
