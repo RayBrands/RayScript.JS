@@ -32,17 +32,6 @@
 
 
 <script>
-	/*let
-		textFunc = `function add(args) {return args[0] + args[1];}`;//"function add(args) {return args[0] + args[1];}";
-	const addFunction = eval(textFunc);
-	const result = addFunction([1, 2]);
-	console.log(result);*/
-	// Ваша строка с функцией
-//const functionString = "function add(args) {return args[0] + args[1];}";
-
-// Используем eval для выполнения строки кода
-//const addFunction = eval(`(${functionString})`);
-
 // Вызываем функцию
 class BracketData {
   constructor(Text = "", Args = [], Commands = [], Type = "", Func = "", ArgsType = [], Value = 0) {
@@ -118,241 +107,252 @@ class BracketData {
     this._Args.push(Arg)
   } 
 
+  addText(Text){
+    this._Text += Text
+  } 
+
   addCommands(CommandsArray){
 	this._Commands.push(CommandsArray)
   }  
 
   // Деструкторы
   deleteText() {
-    this._Text = null
+    delete this._Text //= null
   }
 
   deleteArgs() {
-    this._Args = null
+    delete this._Args //= null
   }
 
   deleteCommands() {
-    this._Commands = null
-  }
-
-  deleteType() {
-    this._Type = null
+    delete this._Commands //= null
   }
 
   deleteFunc() {
-    this._Func = null
+    delete this._Func //= null
   }
 
   deleteArgsType() {
-    this._ArgsType = null
+    delete this._ArgsType //= null
   }
   
   deleteValue(){
-    this._Value = null
+    delete this._Value //= null
   }
 }
 
-function openAllBrackets(_text) {
+function openAllBrackets(Text) {
   let 
-		result = {
-			text: "",
-			args: [],
-			commands: [],
-			type: "" //str(str,var,float),func,funcCommands, commandsList
-		},
-		newCommandResult = [], //Array of commands
-		typeBracket = {
+		Data = new BracketData(),
+		_Text = Text,
+		TypeBracket = {
 			"(": "arg",
 			"[": "array",
 			"{": "command",
-			//"\n": "newCommand"
-		},
-		text = _text,
-		isCommandsText = false;
+		};
+		//"\n": "newCommand"
+		//newCommandResult = [], //Array of command		
+		//isCommandsText = false,
 
-  main();
-  return getType();
+  	main();
+  	return getType();
 
   //====
 
   function main(){
-    for (;((text).length>0);) {
-      let char = text[0];
+    for (;((_Text).length>0);) {
+      let Char = _Text[0];
       //debug? console.log(`text = ${text}`):"";
       
-      switch (typeBracket[char] ?? "default") {
-      
-        case "arg":
-          text = text.slice(1);
+			switch (TypeBracket[Char] ?? "default") {
+
+				case "arg":
+					_Text = _Text.slice(1);
           caseArgBracket();
           break;
-          
-        case "command":
-          text = text.slice(1);
-          caseCommandBracket();
-          break;
-          
-        case "array": //TODO: сделать работу с массивами
-          break;
+				
+				case "command":
+					_Text = _Text.slice(1);
+					caseCommandBracket();
+					break;
+				
+				case "array": //TODO: сделать работу с массивами
+					break;
           
         /*case "newCommand":
           text = text.slice(1);
           caseNewCommandChar();
           break;*/
-          
-        case "default":
-          result.text += char;
-          text = text.slice(1);
-          break;
-          
-      }
+
+				case "default":
+					Data.addText(Char);
+					_Text = _Text.slice(1);
+					break;
+			}
+
     }
-  }
+
+	}
 	
-	function openCommandBracket(_text){
+	function openCommandBracket(Text){
 		let 
-			result = [],
-			text = _text,
-			bracketsCount = 0,
-			commandText = "",
-			bracketCharDict = {
+			Result = [],
+			_Text = _Text,
+			BracketsCount = 0,
+			CommandText = "",
+			BracketCharDict = {
 				"{": 1,
 				"}": -1
 			};
 			
 		function pushCommand(){
-			commandText.trim().length>0?result.push(commandText):"";//проверка на пустое значение
-			commandText=""
+			CommandText.trim().length>0?Result.push(CommandText):"";//проверка на пустое значение
+			CommandText=""
 		}
 		
-		for (;(text.length>0);) {
-			let char = text[0];
+		for (;(_Text.length>0);) {
+			let Char = _Text[0];
 			
-			bracketsCount += bracketCharDict[char] ?? 0;
+			BracketsCount += BracketCharDict[Char] ?? 0;
 
-			if ((char === "\n")&&(bracketsCount===0)){
-				 pushCommand()
+			if ((Char === "\n")&&(BracketsCount===0)){
+				pushCommand()
 			} else {
-				commandText+=char
+				CommandText+=Char
 			}
-			text = text.slice(1)
+			_Text = _Text.slice(1)
 		}
 		
 		pushCommand();
 		
-		return  result
+		return Result
 	}
 	
-	function openTypeBrackets(_text, _charOpenBracket, _charClosedBracket){
+	function openTypeBrackets(Text, CharOpenBracket, CharClosedBracket){
 		let 
-			bracketCount = 1, 
-			resultText = "",
-			itText = false,
-			text=_text;
+			BracketCount = 1, 
+			ResultText = "",
+			ItText = false,
+			_Text=Text;
 			
-		const bracketCharDict = {
-			[_charOpenBracket]: 1,
-			[_charClosedBracket]: -1
+		const BracketCharDict = {
+			[CharOpenBracket]: 1,
+			[CharClosedBracket]: -1
 		}
 		
-		for (;(bracketCount > 0)&&(text.length>0);){
-			let char = text[0];
-			bracketCount += bracketCharDict[char] ?? 0;
-			if (bracketCount===0) {break}
-			resultText+=char;
-			text = text.slice(1)
+		for (;(BracketCount > 0)&&(_Text.length>0);){
+			let Char = _Text[0];
+			BracketCount += BracketCharDict[Char] ?? 0;
+			if (BracketCount===0) {break}
+			ResultText+=Char;
+			_Text = _Text.slice(1)
 		}
 		
-		if (bracketCount >= 1) {
-			debug?  console.warn(`\n[Warning] In opening the brackets of the text: "${_charOpenBracket+_text}"\nThe number of open and closed brackets does not match, ignoring char "${_charOpenBracket}"`) :"";
-			itText = true
+		if (BracketCount >= 1) {
+			debug?  console.warn(`\n[Warning] In opening the brackets of the text: "${CharOpenBracket+Text}"\nThe number of open and closed brackets does not match, ignoring Char "${CharOpenBracket}"`) :"";
+			ItText = true
 		}
 		
 		return {
-			text: resultText, 
-			itText: itText
+			Text: ResultText, 
+			ItText: ItText
 		}
-	};
+	}
 		
 	function caseArgBracket(){
 		let 
-			argResult =  openTypeBrackets(text,"(",")");
+			ArgResult =  openTypeBrackets(_Text,"(",")");
 		
-		if (argResult.itText){
-			result.text += "(";
+		if (ArgResult.ItText){
+			Data.addText("(")
 		} else {
-			text = text.slice(argResult.text.length+1);
-			let openedArg =  argResult.text; ///openAllBrackets();
-			result.args.push(openedArg); //TODO: добавить условие для добавление аргумента (Проверка на пустое значение);
+			let 
+				OpenedArg =  ArgResult.Text;
+
+			_Text = _Text.slice(OpenedArg.length+1);
+			Data.addArg(OpenedArg); //TODO: добавить условие для добавление аргумента (Проверка на пустое значение);
 		}
 	}
 			
 	function caseCommandBracket(){
 		let 
-			commandResult =  openTypeBrackets(text,"{","}");
+			CommandResult =  openTypeBrackets(_Text,"{","}");
 				
-		if (commandResult.itText){
-			result.text += "{";
+		if (CommandResult.ItText){
+			Data.addText("{")
 		} else {
-			let commandsArray = [];
+			let CommandsArray = [];
 			
-			text = text.slice(commandResult.text.length+1);
-			let openedBrackets =  openCommandBracket(commandResult.text);
+			_Text = _Text.slice(CommandResult.text.length+1);
+			let OpenedBrackets =  openCommandBracket(CommandResult.Text);
 			
-			for (let i = 0; i < openedBrackets.length; i++) {
-				let command =  openedBrackets[i];
-				commandsArray.push(command)
+			for (let i = 0; i < OpenedBrackets.length; i++) {
+				let Command =  OpenedBrackets[i];
+				CommandsArray.push(Command)
 			}
-			result.commands.push(commandsArray)
+			Data.addCommands(CommandsArray)
 		}
 	}
 	
 	function getType(){
-		if ((result.commands).length){
-			result.text = result.text.replace(/[\s\t\n]/g, "").toLowerCase();
-			return {
-				text: result.text,
-				args: result.args.map ((element) => {
-					return JSON.stringify(openAllBrackets(element));
-				}),
-				commands: result.commands.map ((commandsArrayElement) => {
-					return commandsArrayElement.map((command) => {
-						//console.log(command);
-						return JSON.stringify(openAllBrackets(command))
-					})
-				}),
-				type: "fyncCommands"
-			}
-		} else if ((result.args).length){
-			result.text = result.text.replace(/[\s\t\n]/g, "").toLowerCase();			
-			/*if(!result.text.length){
-				result = (result.args[0])
-				return  result.type;
-			}*/
-			return {
-				arg_type: 0,
-				text: result.text,
-				args: result.args.map ((element) => {
-					return JSON.stringify(openAllBrackets(element));
-				}),
-				type: "func" //str(str,var,float),func,funcCommands, commandsList
-			}
+		
+		if (Data.Commands.length){
+			Data.setText(Data.Text.replace(/[\s\t\n]/g, "").toLowerCase());
+			Data.setType("fyncCommands");
+			Data.setArgs(Data.Args.map ((element) => {
+					return openAllBrackets(element)
+			}));
+			Data.setCommands(Data.Commands.map (
+				(commandsArrayElement) => {
+					return commandsArrayElement.map(
+						(command) => {
+							return openAllBrackets(command)
+						})
+				}
+			))
+
+			Data.deleteValue();
+			Data.deleteArgsType();
+			
+			return Data
+		} 
+
+		else if (Data.Args.length){
+			Data.setText(Data.Text.replace(/[\s\t\n]/g, "").toLowerCase());		
+			Data.setArgsType(0);
+			Data.setType("func");
+			Data.setArgs(Data.Args.map ((element) => {
+					return openAllBrackets(element)
+			}))
+
+			Data.deleteCommands();
+			Data.deleteValue();
+			
+			return Data
 		}
+
+		Data.deleteCommands();
+		Data.deleteArgs();
+		Data.deleteArgsType();
+		Data.deleteFunc();
 		
 		function isNum(_str) {
 			return !isNaN(parseFloat(_str))
 		}
 		
-		if (isNum(result.text)){
-			return {
-				value: parseFloat(result.text),
-				type: "float"
-			}
+		if (isNum(Data.Text)){
+			Data.setValue(parseFloat(Data.Text));
+			Data.setType("float");
+			
+			Data.deleteText();
+
+			return Data
 		}
-		return {
-			text: result.text.trim(),
-			type: "str"
-		}
+		
+		Data.setText(Data.Text.trim());
+		Data.setType("str");
+		
+		return Data
 	}
 }
 
