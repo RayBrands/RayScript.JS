@@ -217,7 +217,7 @@ function openAllBrackets(Text) {
 	function openCommandBracket(Text){
 		let 
 			Result = [],
-			_Text = _Text,
+			_Text = Text,
 			BracketsCount = 0,
 			CommandText = "",
 			BracketCharDict = {
@@ -314,7 +314,7 @@ function openAllBrackets(Text) {
 		} else {
 			let CommandsArray = [];
 			
-			_Text = _Text.slice(CommandResult.text.length+1);
+			_Text = _Text.slice(CommandResult.Text.length+1);
 			let OpenedBrackets =  openCommandBracket(CommandResult.Text);
 			
 			for (let i = 0; i < OpenedBrackets.length; i++) {
@@ -333,7 +333,7 @@ function openAllBrackets(Text) {
 		
 		if (Data.Commands.length){
 			Data.setText(Data.Text.replace(/[\s\t\n]/g, "").toLowerCase());
-			Data.setType("fyncCommands");
+			Data.setType("funcCommands");
 			Data.setArgs(Data.Args.map ((element) => {
 					return openAllBrackets(element)
 			}));
@@ -391,39 +391,40 @@ function openAllBrackets(Text) {
 	}
 }
 
-/*!Code Style*/
+
 /*Вызов функции с аргументами и командами*/
-function callFunction(_func, _data={args:[],commands:[],type:"func"}) {//TODO: Сделать описание и сделать проверку функций и аргументов, представленных внизу
-	debug? console.log(_func):"";
-	debug? console.log(_data):"";
+/*!Code Style*/
+function callFunction(_func, _args, _commands, _type) {//TODO: Сделать описание и сделать проверку функций и аргументов, представленных внизу
+	DEBUG? console.log(_func):"";
+	DEBUG? console.log(_args,_commands,_type):"";
 	let 
-		result,
-		data=_data;
+		result;
 	
-	if (_data.type==="func") {
-		 callFunc()
+	if (_type==="func") {
+		callFunc()
 	} else {
-		debug? !(_data.commands).length?console.warn(`\n[Warning] Функция ${_func} не имеет комманд в {commands}`):"":"";
-		result =  _func(...[_data.args],...[_data.commands])
+		DEBUG? !(_commands).length?console.warn(`\n[Warning] Функция ${_func} не имеет комманд в {commands}`):"":"";
+		result =  _func(...[_args],...[_commands])
 	}
 	
-	 function callFunc(){
-		debug?!(_data.args).length?console.warn(`\n[Warning] Функция ${_func} не имеет аргументов`):"":"";
+	function callFunc(){
+		DEBUG?!(_args).length?console.warn(`\n[Warning] Функция ${_func} не имеет аргументов`):"":"";
 		
 		//console.log(_data.args);
-		 getArgs();
+		getArgs();
 		
 		
 		
-		 function getArgs(){
-			for (let i = 0; i < (data.args).length; i++) {
-				data.args[i] =  run(data.args[i])
+		function getArgs(){
+			for (let i = 0; i < (_args).length; i++) {
+				_args[i] =  run(_args[i])
 			}
-			result = _func(...[_data.args])
+			result = _func(...[_args])
+			console.log(result);
 		}
 	}
 	
-	return  result;
+	return result;
 }
 
 /*
@@ -433,110 +434,106 @@ Parser должен по идее выдавать объект из коман�
 args: 
 	Data -> object BracketData() - Раскрытые скобки при помощи OpenAllBrackets()
 */
-/*!Code Style*/
 function parser(Data){
 	console.log(`Parser have _data:`);
 	console.log(Data);
 
 	let 
-		Result;
+		Result = Data;
 
 	switch (Data.Type?? "default") {	
 		case "func":
 			return  caseFunc()//TODO?
 			
-		case "fyncCommands":
+		case "funcCommands":
 			return  caseFuncCommands()//TODO?
 			
 		case "commandsList":
 			return  caseCommandsList() //TODO?
 	}
 	
-	return  _data;
+	return Result;
 	
-	 function caseFunc(){ //func() , ()func(), ()big()func()
+	function caseFunc(){ //func() , ()func(), ()big()func()
 		let 
-			Command = Ext.Commands.get(_data.text),
-			data = {
-				func: command? ("function ") + (command.func.toString().replace(/[\t\n]/g, "")): false,
-				notVarValue: command? command.notVarValue : false,
-				args_type: command? command.args_type: false,
-				args: _data.args,
-				type: _data.type
-			};
-		
-		 parseArgs();
-		 checkCustomBlocks();
-		
-		 function parseArgs(){
-			for (let i = 0; i < (data.args).length; i++) {
-				data.args[i] =  parser(data.args[i])
-			}
-			if (data.args_type??false){
-				data.args[0].args_type= data.args_type[0]
-			}
+			Command = Ext.Commands.get(Result.Text);
+			
+		if (Command??false){
+			Result.setFunc(("function ") + (Command.Func.toString().replace(/[\t\n]/g, "")));
+			Result.setArgsType(Command.ArgsType)
 		}
 		
-		 function checkCustomBlocks(){
-			if (!data.func){
-				data.func = _data.text;
-				data.type = "customBlock";
-				delete data.notVarValue,data.args_type
+		parseArgs();
+		checkCustomBlocks();
+		
+		function parseArgs(){
+			let
+				ArgArray = Result.Args;
+
+			for (let i = 0; i < ArgArray.length; i++) {
+				ArgArray[i] = parser(ArgArray[i])
+			}
+			if (Result.ArgsType??false){
+				ArgArray[0].setArgsType(Result.ArgsType[0])
+			}
+
+			Result.Args = ArgArray;
+		}
+		
+		function checkCustomBlocks(){
+			if (!Result.Func){
+				Result.Func = Result.Text;
+				Result.Type = "customBlock";
+				Result.deleteArgsType;
 			}
 			/*
 			TODO: (Parser, Func)
 			Создать проверку в Parser после обработки всех функций, что кастомный блок func(){} есть в системе (Сделать возможность загрузить из сервера (планы))
 			*/
+			//debug? console.log({args:funcData.args,type:_data.type}):"";
 		}
 		
-		return  {
-			text: _data.text,
-			args: data.args,
-			func: data.func,
-			type: data.type
-		}
-		//debug? console.log({args:funcData.args,type:_data.type}):"";
-		
-		
+		return Result
 	}
 	
-	 function caseFuncCommands(){	
-		/*===*/
-		let 
-			result = _data;
-		
-		 parseArgs();
-		 parseCommandsArray();
-		 checkCustomBlocks();
+	function caseFuncCommands(){	
 
-		return result;
+		parseArgs();
+		parseCommandsArray();
+		checkCustomBlocks();
+
+		return Result;
 		
 		/*===*/
 		
-		 function parseArgs(){
-			for (let i = 0; i < (result.args).length; i++) {
-				result.args[i] =  parser(result.args[i])
-			}
-		}
-
-		 function parseCommandsArray(){
-			for (let i = 0; i < (result.commands).length; i++){
-				for (let j = 0; j < ((result.commands[i]).length); j++) {
-					result.commands[i][j] =  parser(result.commands[i][j])
-				}
-			}
-		}
-		
-		 function checkCustomBlocks(){
+		function parseArgs(){
 			let
-				command =  ext.commands.get(_data.text);
-			
-			if (command?false:true){
-				if (result.args.length<1){
-					debug? console.warn(`\n[Warning] Custom block ${result.text}{} have no args :P`):"";
+				ArgArray = Result.Args;
+
+			for (let i = 0; i < ArgArray.length; i++) {
+				ArgArray[i] = parser(ArgArray[i])
+			}
+		}
+
+		function parseCommandsArray(){
+			for (let i = 0; i < (Result.Commands).length; i++){
+				for (let j = 0; j < ((Result.Commands[i]).length); j++) {
+					Result.Commands[i][j] = parser(Result.Commands[i][j])
 				}
-				result.type = "customBlockCommands";
-				result.func = _data.text
+			}
+		}
+		
+		function checkCustomBlocks(){
+			let
+				Command =  Ext.Commands.get(Result.Text);
+			
+			if (Command?false:true){
+				if (Result.Args.length<1){
+					DEBUG? console.warn(`\n[Warning] Custom block ${Result.Text}{} have no args :P`):"";
+				}
+
+				Result.setType("customBlockCommands");
+				Result.setFunc(Result.Text)
 				/*
 				TODO:(Parser, FuncCommands)
 				Сделать здесь регистрацию кастомных блоков 
@@ -546,11 +543,11 @@ function parser(Data){
 				выполнить проверку внутри блока на кол-во аргументов и т.п.)
 				*/
 			} else {
-				result.func = ("function ") + ((command.func).toString().replace(/[\t\n]/g, ""));
-				debug? console.warn(result.func):"";
+				DEBUG? console.warn(Result):"";
+				Result.setFunc(("function ") + ((Command.Func).toString().replace(/[\t\n]/g, "")))
 			}
-			
 		}
+
 	}
 	
 	 function caseCommandsList(){
@@ -558,7 +555,7 @@ function parser(Data){
 		TODO:(Parser, commandsList)
 		Сделать обработку событий (старт, каждый кадр, нажатие клавиши, нажатие мышки и тп.)
 		*/
-		return  _data
+		return Result
 	}
 	
 }
@@ -575,12 +572,17 @@ Return:
 	Выполненный код, вывод результата
 */
 /*!Code Style*/
- function run(_data){
+function run(Data){
 	console.log("run gave _data");
-	console.warn(_data);
+	
+
+	const
+		Result = Data;
+
+	console.warn(Result);
 	
 	//TODO: убрать комментарии с Parser после написания этого блока
-	switch (_data.type?? "default") {	
+	switch (Result._Type?? "default") {	
 		
 		case "func":
 			return  caseFunc()
@@ -598,63 +600,73 @@ Return:
 			return  caseStr()
 	}	
 	
-	return  _data.type;
+	return Result;
 	
-	 function caseFunc(){
+	function caseFunc(){
 		let
-			args = JSON.stringify(_data.args);
+			Args = Result._Args;
 			
 		getArgs();
+		console.log(Args)
+
+		let runner = {
+			args: [],
+			type:Result._Type
+		}
+		runner['args']=JSON.parse(JSON.stringify(Args));
+
+		console.log(runner)
 
 		return callFunction(
-			eval(`(${_data.func})`),
-			{
-				args:JSON.parse(args),
-				type:_data.type
-			}
+			_func = eval(`(${Result._Func})`),
+			_args = runner.args, _commands = [], _type=Result._Type
 		);
 		
-		 function getArgs(){
-			for (let i = 0; i < args.length; i++) {
-				args[i] =  run(args[i])
+		function getArgs(){
+			for (let i = 0; i < Args.length; i++) {
+				
+				Args[i] = run(Args[i]);
+				
 			}
 		}
 		
 	}
 	
-	 function caseFuncCommands(){
+	function caseFuncCommands(){
 		let
-			args = JSON.stringify(_data.args),
-			commands = JSON.stringify(_data.commands);
+			Args = Result._Args,
+			Commands = Result._Commands;
 			
-		return  callFunction(
-			eval(`(${_data.func})`),
+		return callFunction(
+			eval(`(${Result._Func})`),
 			{
-				args:JSON.parse(args),
-				type:_data.type,
-				commands:JSON.parse(commands)
+				args:Args,
+				type:Result._Type,
+				commands:Commands
 			}
-		);
+		)
 	}
 	
-	 function caseStr(){
-		if (_data.args_type??false){
+	function caseStr(){
+		if (Result._ArgsType??false){
 			//console.log(`getting varSTR`);
-			if (isVar(_data.args_type==="varStr")){
-				return getVarValue(_data.text)
+			if (isVar(Result._ArgsType==="varStr")){
+				return getVarValue(Result.Text)
 			}
 		} else if (isVar()) {
-			return getVarValue(_data.text)
+			return getVarValue(Result._Text)
 		}
-		return  _data.text || 0;
+		console.log(Result._Text || 0);
+		return Result._Text || 0;
 		
 		function isVar(notGetValue = false){
-			return notGetValue?false:variablesMap.has(_data.text)?true:false
+			return notGetValue?false:variablesMap.has(Result._Text)?true:false
 		}
 	}
 	
-	 function caseFloat(){
-		return  _data.value;
+	function caseFloat(){
+		console.log(Result._Value);
+		return Result._Value;
 	}
 }
 
@@ -686,7 +698,6 @@ Return:
  Добавляет значения блоков в blocks (Распределяя по классам)
  modules содержит все подключённые модули а также их описание, color и ссылка на документацию
 */
-/*!Code Style*/
 class Extensions {
   constructor() {
     this.Commands = new Map();
@@ -699,43 +710,45 @@ class Extensions {
 			throw new Error('Invalid class: ' + Clazz.name);
 		}
 		const Info = Clazz.prototype.getInfo();
-		const moduleInfo = {
-				name: Info.name,
-				color: Info.color, // pure red
-				docsURI: Info.docsURI, //Документация к модулю
-		description: Info.description //краткое описание модуля
+		const ModuleInfo = {
+				Name: Info.name,
+				Color: Info.color, // pure red
+				DocsURI: Info.docsURI, //Документация к модулю
+				Description: Info.description //краткое описание модуля
 		}
-		this.modules.set(Info.id, moduleInfo);
+		this.Modules.set(Info.id, ModuleInfo);
 
 		// Registration code remains the same
 		// Регистрация блоков
-			for (const block of Info.blocks) {
-				//Регистрация команд
-				const key = block.text; // Ключ без пробелов
-		//debug? console.log(openAllBrackets(key)):"";
-		let openedBrackets =  openAllBrackets(key);
-				this.commands.set(openedBrackets.text, {
-					//id: info.id,
-					//opcode: block.opcode,
-			//type: openBrackets(key).type,
-					args_type: block.args_type,
-			notVarValue: block.notVarValue,
-			func: Clazz.prototype[block.opcode]  //возможно стоит изменить это
-				});
-				//Регистрация блоков
-				const blocksForClass = this.blocks.get(Info.id) || {};
-				blocksForClass[block.text] = {
-					type: block.type,
-					description: block.description,
-					args: block.args
-				};
-				this.blocks.set(Info.id, blocksForClass);
-			}
-			return this;
+		for (const Block of Info.blocks) {
+			//Регистрация команд
+			//debug? console.log(openAllBrackets(key)):"";
+			const Key = Block.text; // Ключ без пробелов
+			let OpenedBrackets = openAllBrackets(Key);
+			this.Commands.set(OpenedBrackets.Text, {
 
-			function isNotClassValid(Clazz) {
-				return !(Clazz.prototype && Clazz.prototype.getInfo && typeof Clazz.prototype.getInfo === 'function');
-			}
+				ArgsType: Block.args_type,
+				NotVarValue: Block.notVarValue,
+				Func: Clazz.prototype[Block.opcode]  //возможно стоит изменить это
+				
+				//id: info.id,
+				//opcode: block.opcode,
+				//type: openBrackets(key).type,
+			});
+			//Регистрация блоков
+			const BlocksForClass = this.Blocks.get(Info.id) || {};
+			BlocksForClass[Block.text] = {
+				Type: Block.type,
+				Description: Block.description,
+				Args: Block.args
+			};
+			this.Blocks.set(Info.id, BlocksForClass);
+		}
+		return this;
+
+		function isNotClassValid(Clazz) {
+			return !(Clazz.prototype && Clazz.prototype.getInfo && typeof Clazz.prototype.getInfo === 'function');
+		}
   }
 }
 
@@ -747,23 +760,24 @@ let openedBrackets;
 submitButton.addEventListener('click',  function() { 
 	const startTime = Date.now();
 	returnValue = 0;
-	openedBrackets = JSON.stringify(openAllBrackets(editTextElement.value));
-	dictOpenedBrackets = JSON.parse(openedBrackets);
+	openedBrackets = openAllBrackets(editTextElement.value);
 	console.log(openedBrackets);
-	console.log(JSON.parse(dictOpenedBrackets.commands[0][0]));
+	parseredBrackets = parser(openedBrackets);
+	console.log(parseredBrackets);
 	
 	//parseredBrackets =  JSON.stringify(parser(dictOpenedBrackets));
 	//console.log(JSON.parse(parseredBrackets));
 });
 startButton.addEventListener('click',  function() { 
 	const startTime = Date.now();
+	const newVar = parseredBrackets;
 	returnValue = 0;
 	function start(_data){
-		let runned =  run(JSON.parse(_data));
+		let runned =  run( JSON.parse(JSON.stringify(_data)));
 		console.log(_data);
 		console.log(runned);
 	}
-	start(parseredBrackets);
+	start(newVar);
 });
 
 /*Start Modules*/
@@ -1044,8 +1058,7 @@ class baseModule{
 	}
 		rys(_args, _commands) {
 		try {
-		let commandReturnValue = returnValue
-		const command = _commands[0];
+		let commandReturnValue = returnValue, command = _commands[0];
 		const result =  startCommandsFromArray(command, commandReturnValue);
 		return result;
 		} catch (error) {
@@ -1105,6 +1118,7 @@ class baseModule{
 		Математические выражения
 	*/
 	add(args) {
+		console.log(args);
 		return args[0] + args[1];
 	};
 	subtract(args) {
