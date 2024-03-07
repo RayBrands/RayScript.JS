@@ -8,9 +8,9 @@ let then = Date.now();
 
 //"Сцена" и её стандартные свойства
 let stage = {
-	height: 700,
+	height: 300,
 	width: 200,
-  scaleMode: 'adaptive' //Определение "типа" отрисовки
+  scaleMode: 'fixed' //Определение "типа" отрисовки
 };
 
 //Тестовые значения

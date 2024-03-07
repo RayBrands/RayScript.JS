@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<title>RayScript.JS</title>
+	<style>
+		body{
+			background-color: black;
+		}
+		#canvas-container {
+		  position: absolute;
+		  top: 0;
+		  left: 0;
+		  width: 100%;
+		  height: 100%;
+		  overflow: hidden;
+		  background-color: black;
+		}
+
+		#canvas {
+		  width: 100%;
+		  height: 100%;
+		  image-rendering: pixelated;
+		  margin: 0 auto;
+		  max-width: 100vw;
+		  max-height: 100vh;
+
+		  object-fit: contain;
+		  object-position: center;
+		}
+		textarea {
+			width: 500px;
+			height: 200px;
+			font-size: 16px;
+			padding: 10px;
+		}
+	</style>
+</head>
+<body>
+	
+	<!--Тест работы интерпритатора--> 
+	
+	<!--<input type="text" id="editText" placeholder="Enter text">-->
+    
+	<textarea id="editText" rows="10" cols="50">Включите JavaScript для вашего браузера, иначе RayScript превращается в ленивого котика :(</textarea>
+	<button id="submitButton">Start</button> 
+	<div id="output" style="color:white"></div>
+    <script>
+	//Работа с переменными
+/*
+
+*/
+const variablesDict = {}; // Хранение переменных проекта в словаре (Почему нет)
+
+//справочник(-функция) для работы с переменными
+const variables = { 
+	setValue: function (_name,_value) { // Функция для установки значения переменной
+		variablesDict[_name] = _value;
+		return _value; 
+	},
+	getValue: function (_name){ // Функция для получения значения переменной
+		return variablesDict[_name] ?? 0; //Возвращает значение Zero если нету такой переменной
+	}
+};
+function setVarValue(_name,_value){
+	variablesDict[_name] = _value;
+	return _value;
+}
+function getVarValue(_name){
+	return variablesDict[_name] ?? 0;
+}
+
+
+/*
+    Функция принимает на вход строку, 
+	представляющую собой функцию со скобками (квадратными и круглыми), 
+	и разделяет ее на текст функции и аргументы.
+
+    Args:
+        text: Строка, представляющая собой функцию со скобками.
+
+    Returns:
+        result: Объект с двумя полями:
+			* text: Текст функции без скобок.
+			* args: Массив аргументов, которые находились внутри скобок + возможен массив из команд внутри {}
+			
+	TODO: сделать квадратные скобки значением массива
+*/
+function openBrackets(_text) {
+	let result = {
+		text: "",
+		args: [],
+	};
+
+	let argsBracketCount = 0; //Кол-во скобок для аргументов
+	let bracketArg = "";
+	let skipArgBracketSymbol=1;
+	let bracketCommand = "";
+	let commandBracketCount = 0;
+	let skipCommandBracketSymbol = 1;
+	let commandArray = [];
+	let firstBracketType = ""; //Определяет какой тип скобок появилась первой
+	
+	let argCharDict = {
+		"(": 1,
+		"[": 1,
+		")": -1,
+		"]": -1,
+	};
+		
+	let commandCharDict = {
+		"{": 1,
+		"}": -1,
+	};
+	
+	for (let i = 0; i < _text.length; i++) {
+		const char = _text[i];
+		
+		argsBracketCount += char in argCharDict ? argCharDict[char] : 0;
+		commandBracketCount += char in commandCharDict ? commandCharDict[char] : 0;
+		
+		//Позволяет сохранить другой тип скобок внутри других скобок
+		if ((argsBracketCount === 1)&&(commandBracketCount===0)){
+			firstBracketType = "args"
+		} else if ((argsBracketCount === 0)&&(commandBracketCount===1)){
+			firstBracketType = "command"
+		}
+		
+		//TODO: сделать отдельные функции для конкретных операций
+		switch (firstBracketType) {
+			//Первая скобка - аргумента
+			case "args":
+				if (argsBracketCount >= 1) { 
+					if (skipArgBracketSymbol === 0) {
+						bracketArg += char;
+						//console.log(char);
+					} else { //первая скобка аргумента игнорируется
+						skipArgBracketSymbol = 0;
+					}
+				} else if (skipArgBracketSymbol === 0){ //последняя скобка аргумента
+					result.args.push(bracketArg);
+					bracketArg = "";
+					skipArgBracketSymbol = 1;
+					firstBracketType = "" 
+				}
+				break;
+			//Первая скобка - команд
+			case "command":
+				if (commandBracketCount >= 1){
+					if (skipCommandBracketSymbol === 0) {
+						if ((char === "\n")&&(commandBracketCount == 1)) {
+							//TODO: сделать проверку пустого значения
+							if (bracketCommand.trim() != ''){
+								commandArray.push(bracketCommand.trim());
+							}
+							bracketCommand = "";
+						} else {
+							bracketCommand += char;
+							//console.log(char);
+						}
+					} else { //первая командная скобка игнорируется
+						skipCommandBracketSymbol = 0;
+					}
+				} else if (skipCommandBracketSymbol === 0) {
+					if (bracketCommand.trim() != ''){
+								commandArray.push(bracketCommand.trim());
+					}
+					result.args.push(commandArray);
+					commandArray = [];
+					skipCommandBracketSymbol = 1;
+					firstBracketType = "";
+					bracketCommand = "";
+				}
+				break;
+			//Скобок нет
+			default:
+				result.text += char;
+		}
+	};
+	
+	result.text.trim();
+	
+	//Проверка простых скобок без текста
+	//console.log(result.text.replace(/\s/g, ''));
+	if ((result.text.replace(/\s/g, '')=="")&&(result.args.length>=1)){
+		return openBrackets(result.args[0]);
+	}
+	return result;
+};
+
+function returnReq(req) {return (req)?1:0}; //Нужно для численного значения булевого типа данных
+
+/*
+ Класс extensions
+ Принимает модуль, добавляет команды в commands
+ Добавляет значения блоков в blocks (Распределяя по классам)
+ modules содержит все подключённые модули а также их описание, color и ссылка на документацию
+*/
+//TODO: Сделать проверку кол-ва аргументов, задать тип данных для работы с блоками
+class extensions {
+  constructor() {
+    this.commands = new Map();
+    this.blocks = new Map();
+    this.modules = new Map();
+  }
+
+  register(clazz) { //Регистрация нового модуля
+    if (isNotClassValid(clazz)) {
+      throw new Error('Invalid class: ' + clazz.name);
+    }
+    const info = clazz.prototype.getInfo();
+    const moduleInfo = {
+        name: info.name,
+        color: info.color, // pure red
+        docsURI: info.docsURI, //Документация к модулю
+		description: info.description //краткое описание модуля
+    }
+    this.modules.set(info.id, moduleInfo);
+
+    // Registration code remains the same
+    // Регистрация блоков
+      for (const block of info.blocks) {
+        //Регистрация команд
+        const key = block.text.replace(/\s/g, ''); // Ключ без пробелов
+		
+        this.commands.set(openBrackets(key).text.toLowerCase(), {
+          id: info.id,
+          opcode: block.opcode,
+          args: block.args,
+		  notVarValue: block.notVarValue,
+		  func: clazz.prototype[block.opcode]  //возможно стоит изменить это
+        });
+        //Регистрация блоков
+        const blocksForClass = this.blocks.get(info.id) || {};
+        blocksForClass[block.text] = {
+          type: block.type,
+          description: block.description,
+          args: block.args
+        };
+        this.blocks.set(info.id, blocksForClass);
+      }
+      return this;
+  }
+}
+var ext = new extensions(); //Инициализация дополнений
+
+function parser(_text,_notVarValue=false) {
+	/*
+	TODO:
+	1)Сделать поддержку переменных
+	2)Сделать поддержку классов, а также функций внутри кода
+	*/
+	//console.log ('parser text = ', _text);
+	let bracketsText = openBrackets(_text).text, bracketsArgs = openBrackets(_text).args;
+	function hasNestedArray(array) { //Проверка того, что в массиве нет массива
+	  return array.some(element => element instanceof Array);
+	}
+	let funcVar = ext.commands.get(bracketsText.replace(/ /g, "").toLowerCase());
+	//console.log (ext.commands.get(bracketsText.replace(/ /g, "")));
+	
+	//console.log(bracketsText);
+	if (!isNaN(bracketsText)){
+		return parseFloat(bracketsText);
+	} else if (typeof funcVar !== 'undefined') {
+		let changeNotVarValue = funcVar.notVarValue;
+		//console.log()
+		for (let i = 0; i < bracketsArgs.length; i++) {
+			if (!hasNestedArray([bracketsArgs[i]])){
+				bracketsArgs[i] = parser(bracketsArgs[i],i===0?changeNotVarValue===true?true:false:false);
+			}
+		}
+		return callFunction(funcVar.func,bracketsArgs);
+	} else if (bracketsText in variablesDict){ //Работа с переменными
+		//console.log(_notVarValue);
+		if (_notVarValue!=true){return getVarValue(bracketsText)};
+		//console.log(callFunction(funcVar.func,bracketsArgs));
+	}
+	return bracketsText==""?"0".toString():bracketsText;
+}
+
+
+function callFunction(text, ...args) { 
+	//TODO: Сделать описание и сделать проверку функций и аргументов, представленных внизу
+	const result = text(...args);
+	return result;
+}
+	//let func = {
+	//	id: text.id,
+	//	opcode: text.opcode,
+	//	args: text.args
+	//}
+	/*// Проверка, является ли text строкой
+	if (typeof text !== 'string') {
+		throw new TypeError('text должен быть строкой');
+	}
+	// Проверка, является ли args массивом
+	if (!Array.isArray(args)) {
+		throw new TypeError('args должен быть массивом');
+	}*/
+
+	//const clazz = ext.modules.get(func.id).clazz; // Получить класс по имени
+	//const instance = new clazz(); // Создать экземпляр класса
+	
+
+	// Получение функции из объекта window
+	//const func = window[text];
+
+	/*// Проверка, является ли func функцией
+	if (typeof func !== 'function') {
+		throw new TypeError(`Функция ${text} не найдена`);
+	}*/
+
+	// Вызов функции с аргументами
+	
+//}
+
+function isNotClassValid(clazz) {
+  return !(clazz.prototype && clazz.prototype.getInfo && typeof clazz.prototype.getInfo === 'function');
+}
+
+function startCommandsArray(_commandsArray,_commandReturnValue){
+	if (!Array.isArray(_commandsArray)) {
+			throw new TypeError("[TOTAL ERROR] 'func {}' have not array of commands");
+	}
+	let result = parser(_commandsArray[0]);
+	if (0!=_commandReturnValue){
+		return result;
+	} else if (_commandsArray.length>1) {
+		return startCommandsArray(_commandsArray.slice(1),_commandReturnValue);
+	} else {
+		return result;
+	}
+}
+
+/*Start Base Modules*/
+class baseModule{
+	getInfo() {
+		return {
+			id: 'baseBlocks',
+			name: 'base commands',
+			//color: '#ff0000', // pure red
+			//docsURI: 'https://ya.ru', //Документация к модулю
+			description: 'Предоставляет базовые операции для работы с кодом', //Описание модуля
+			blocks: [
+				{
+					text: 'rys{ }',opcode: 'rys',description: 'Выполнение кода построчно',
+					//type: 'reporter',
+				},
+				{
+					text: 'if () {}',opcode: 'ifFunc',description: 'Выполнение кода слева если условие в первом аргументе True(1)'
+				},
+				{
+					text: 'repeat(){ }',opcode: 'repeatFunc',description: '',
+					//type: 'reporter',
+				},
+				{
+					text: 'if () {}else{}',opcode: 'ifElseFunc',description: 'Выполнение кода слева если условие в первом аргументе True(1)'
+				},
+				/*
+					Математические выражения
+				*/
+				{
+					text: '( ) + ( )',opcode: 'add',description: 'Возвращает сумму двух чисел'
+				},
+				{
+					text: '( ) - ( )',opcode: 'subtract',description: 'Возвращает разность двух чисел'
+				},
+				{
+					text: '( ) * ( )',opcode: 'multiply',description: 'Возвращает произведение двух чисел'
+				},
+				{
+					text: '( ) / ( )',opcode: 'divide',description: 'Возвращает частное двух чисел'
+				},
+				{
+					text: '() ** ()',opcode: 'power',description: 'Возводит число a в степень b'
+				},
+				{
+					text: '() pow ()',opcode: 'power',description: 'Возводит число a в степень b'
+				},
+				{
+					text: '() ^ ()',opcode: 'power',description: 'Возводит число a в степень b'
+				},
+				//Более сложные
+				{
+					text: 'round ( )',opcode: 'round',description: 'Округляет число до ближайшего целого'
+				},
+				{
+					text: 'abs ( )',opcode: 'abs',description: 'Возвращает абсолютное значение числа'
+				},
+				{
+					text: 'floor ( )',opcode: 'floor',description: 'Округляет число в меньшую сторону'
+				},
+				{
+					text: 'sqrt ( )',opcode: 'sqrt',description: 'Возвращает квадратный корень числа'
+				},
+				{
+					text: 'ceiling ( )',opcode: 'ceiling',description: 'Округляет число в большую сторону'
+				},
+				{
+					text: 'cos ( )',opcode: 'cos',description: 'Возвращает косинус угла в радианах'
+				},
+				{
+					text: 'sin ( )',opcode: 'sin',description: 'Возвращает синус угла в радианах'
+				},
+				{
+					text: 'tan ( )',opcode: 'tan',description: 'Возвращает тангенс угла в радианах'
+				},
+				{
+					text: 'asin ( )',opcode: 'asin',description: 'Возвращает арксинус числа'
+				},
+				{
+					text: 'acos ( )',opcode: 'acos',description: 'Возвращает арккосинус числа'
+				},
+				{
+					text: 'atan ( )',opcode: 'atan',description: 'Возвращает арктангенс числа'
+				},
+				{
+					text: 'ln ( )',opcode: 'ln',description: 'Возвращает натуральный логарифм числа'
+				},
+				{
+					text: 'e^ ( )',opcode: 'exp',description: 'Возводит число e в степень аргумента'
+				},
+				{
+					text: 'log10 ( )',opcode: 'log10',description: 'Возвращает десятичный логарифм числа'
+				},
+				{
+					text: 'log ( )',opcode: 'ln',description: 'Возвращает натуральный логарифм числа'
+				},
+				{
+					text: 'random( )',opcode: 'random',description: 'Генерирует случайное число от 0 до указанного значения'
+				},
+				{
+					text: 'trunc ( )',opcode: 'trunc',description: 'Отбрасывает дробную часть числа, оставляя целую'
+				},
+				{
+					text: '( ) mod ( )',opcode: 'ModFunc',description: 'Сравнение ONE с TWO',
+				},
+				{
+					text: 'trunc with digits ( ) of ( )',opcode: 'TruncWithDigits',description: 'Округление числа до знака запятой'
+				},
+				
+				/*
+					Условные выражения
+				*/
+				{
+					text: '( ) > ( )',opcode: 'More',description: '(a) больше (b)?'
+				},
+				{
+					text: '( ) < ( )',opcode: 'Less',description: '(a) меньше (b)?'
+				},
+				{
+					text: '( ) == ( )',opcode: 'Equal',description: '(a) равно (b)?'
+				},
+				{
+					text: '( ) != ( )',opcode: 'NotEqual',description: '(a) не равно (b)?'
+				},
+				{
+					text: '( ) <> ( )',opcode: 'NotEqual',description: '(a) не равно (b)?'
+				},
+				{
+					text: '( ) >< ( )',opcode: 'NotEqual',description: '(a) не равно (b)?'
+				},
+				{
+					text: '( ) >= ( )',opcode: 'MoreOrEqual',description: '(a) больше или равно (b)?'
+				},
+				{
+					text: '( ) <= ( )',opcode: 'LessOrEqual',description: '(a) нменьше или  равно (b)?'
+				},
+				{
+					text: 'not ()',opcode: 'NotFunc',description: '!(req)'
+				},
+				{
+					text: '!()',opcode: 'NotFunc',description: '!(req)'
+				},
+				{
+					text: '( ) and ( )',opcode: 'and_block',description: '(a) и (b) верно?'
+				},
+				{
+					text: '( ) or ( )',opcode: 'or_block',description: '(a) или (b) верно?'
+				},
+				{
+					text: '( ) nand ( )',opcode: 'nand_block',description: '!((a) и (b) верно?)'
+				},
+				{
+					text: '( ) nor ( )',opcode: 'nor_block',description: '!((a) или (b) верно?)'
+				},
+				{
+					text: '( ) xor ( )',opcode: 'xor_block',description: '(a)  не равно (b)?'
+				},
+				{
+					text: '( ) xnor ( )',opcode: 'xnor_block',description: '(a) равно (b)?'
+				},
+				{
+					text: '( ) contains ( )',opcode: 'containsSubstring',description: 'Проверяет, содержит ли строка a подстроку b'
+				},
+				/*TODO: add "()in()" block*/
+				{
+					text: '( ) identical ( )',opcode: 'Equal',description: '(a) равно (b)?'
+				},
+				{
+					text: '( ) is var',opcode: 'isVar',notVarValue: true,description: '(a) является переменной?'
+				},
+				
+				/*
+					Работа со строками
+				*/
+				{
+					text: '( ) join ( )',opcode: 'joinStrings',description: 'Возвращает конкатенацию строк a и b'
+				},
+				{
+					text: 'length( )',opcode: 'length',description: 'Возвращает длину строки или количество цифр в числе'
+				},
+				{
+					text: 'lower ( )',opcode: 'convertToLowercase',description: 'Преобразует строку a в нижний регистр'
+				},
+				{
+					text: 'upper ( )',opcode: 'convertToUppercase',description: 'Преобразует строку a в верхний регистр'
+				},
+				{
+					text: 'letter ( ) of ( )',opcode: 'getCharacterAtIndex',description: 'Возвращает символ строки b по индексу a'
+				},
+				{
+					text: 'letters ( ) to ( ) of ( )',opcode: 'getSubstringFromRange',description: 'Возвращает подстроку c с индексами из диапазона [a..b]'
+				},
+				{
+					text: 'item ( ) split by ( ) of ( )',opcode: 'getItemFromSplit',description: 'Возвращает подстроку #a из разделения строки c подстрокой b'
+				},
+				{
+					text: 'replace ( ) with ( ) of ( )',opcode: 'replaceSubstring',description: 'Заменяет все вхождения подстроки a на подстроку b в строке c'
+				},
+				{
+					text: 'count ( ) of ( )',opcode: 'countSubstrings',description: 'Возвращает количество подстрок a в строке b'
+				},
+				{
+					text: 'index ( ) of ( )',opcode: 'indexOfSubstring',description: 'Возвращает индекс первого вхождения подстроки a в строку b'
+				},
+				
+				/*
+					Работа с переменными
+				*/
+				/*{
+					text: 'var()',
+					opcode: 'getVar',
+					notVarValue: true, //Не находить значение переменной
+					description: 'Получить значение переменной',
+				},*/
+				{
+					text: '()=()',
+					opcode: 'setVar',
+					notVarValue: true,
+					description: 'Задать значение для переменной',
+				},
+				{
+					text: '()+=()',
+					opcode: 'summVar',
+					notVarValue: true,
+					description: 'Добавить значение для переменной',
+				},
+				{
+					text: '()-=()',
+					opcode: 'subtractVar',
+					notVarValue: true,
+					description: 'Убавить значение для переменной',
+				},
+				{
+					text: '()*=()',
+					opcode: 'multiplyVar',
+					notVarValue: true,
+					description: 'Умножить значение для переменной',
+				},
+				{
+					text: '()/=()',
+					opcode: 'divideVar',
+					notVarValue: true,
+					description: 'Разделить значение для переменной',
+				},
+				{
+					text: '()^=()',
+					opcode: 'powerVar',
+					notVarValue: true,
+					description: 'Разделить значение для переменной',
+				},
+			]
+		}
+	}
+	
+	/*
+		Функции модуля
+	*/
+	
+	//Циклы
+	rys(args){	
+		let result;
+		let commandsArray = args[0];
+		//Проверка исключений
+		if (!Array.isArray(commandsArray)) {
+			throw new TypeError("[TOTAL ERROR] In rys has Arg is not array of commands, use template 'rys {commands}'");
+		}
+		//console.log("rys module commands:" + commandsArray);
+		// Перебор элементов массива и вывод их в консоль
+		for (const commands of commandsArray) {
+			//console.log('rys module: ' + commands);
+			result = parser(commands);
+		}
+		return result;
+	};
+	repeatFunc(args){
+		//console.log (`repeat args: `);
+		//console.log (args);
+		let repeatNum = args[0];
+		let result;
+		let commandReturnValue = 0;
+		let commandsArray = args[1];
+		for (let i = 0; i < repeatNum; i++){
+			result = startCommandsArray(commandsArray,commandReturnValue);
+		};
+		return result;
+	}
+	ifFunc(args){
+		let result;
+		//console.log(args);
+		if (args[0]===1) {
+			let commandsArray = args[1];
+			//Проверка исключений
+			if (!Array.isArray(commandsArray)) {
+				throw new TypeError("[TOTAL ERROR] In {}'if{}' has Arg is not array of commands, use template 'if (req) {commands}'");
+			}
+			for (const commands of commandsArray) {
+				//console.log('rys module: ' + commands);
+				result = parser(commands);
+			}
+			return result;
+		}
+	};
+	ifElseFunc(args){
+		//console.log(args);
+		let result;
+		//console.log(args);
+		if (args[0]===1) {
+			let commandsArray = args[1];
+			//Проверка исключений
+			if (!Array.isArray(commandsArray)) {
+				throw new TypeError("[TOTAL ERROR] In {}'if {} else' has Arg is not array of commands, use template 'if (req) {commands}'");
+			}
+			for (const commands of commandsArray) {
+				//console.log('rys module: ' + commands);
+				result = parser(commands);
+			}
+			return result;
+		} else {
+			let commandsArray = args[2];
+			//Проверка исключений
+			if (!Array.isArray(commandsArray)) {
+				throw new TypeError("[TOTAL ERROR] In {}'if else {}' has Arg is not array of commands, use template 'if (req) {commands}'");
+			}
+			for (const commands of commandsArray) {
+				//console.log('rys module: ' + commands);
+				result = parser(commands);
+			}
+			return result;
+		}
+	};
+	
+	/*
+		Математические выражения
+	*/
+	add(args) {
+		return args[0] + args[1];
+	};
+	subtract(args) {
+		return args[0] - args[1];
+	};
+	multiply(args) {
+		return args[0] * args[1];
+	};
+	divide(args) {
+		if (args[1] === 0) {
+			throw new Error("Деление на ноль");
+		}
+		return args[0] / args[1];
+	};
+	power(args){
+        return args[0] ** args[1];
+	};
+	//Более сложные
+	round(args) {
+		return Math.round(args[0]);
+	};
+	abs(args) {
+		return Math.abs(args[0]);
+	};
+	floor(args) {
+		return Math.floor(args[0]);
+	};
+	sqrt(args) {
+		return Math.sqrt(args[0]);
+	};
+	ceiling(args) {
+		return Math.ceil(args[0]);
+	};
+	cos(args) {
+		return Math.cos(args[0]);
+	};
+	sin(args) {
+		return Math.sin(args[0]);
+	};
+	tan(args) {
+		return Math.tan(args[0]);
+	};
+	asin(args) {
+		return Math.asin(args[0]);
+	};
+	acos(args) {
+		return Math.acos(args[0]);
+	};
+	atan(args) {
+		return Math.atan(args[0]);
+	};
+	ln(args) {
+		return Math.log(args[0]);
+	};
+	exp(args) {
+		return Math.exp(args[0]);
+	};
+	log10(args) {
+		return Math.log10(args[0]);
+	};
+	random(args) { //TODO!: Сделать округление до целого числа
+		return Math.random() * (args[0] - 0) + 0; // Генерация случайного числа от 0 до args[0]
+	};
+	trunc(args) {
+		return Math.trunc(args[0]);
+	};
+	ModFunc(args){
+		return (args[0]%args[1]);
+	};
+	TruncWithDigits(args) {
+		let n = Math.floor(cast.toNumber(args[1]));
+		if (n >= 1) {
+			n = 10 ** n;
+			if (n !== Infinity) {
+				return Math.trunc(cast.toNumber(args[0]) * n) / n;
+			}
+			return cast.toNumber(args[0]);
+		}
+		return Math.trunc(cast.toNumber(args[0]));
+	};
+	
+	/*
+		Условные выражения
+	*/
+	More(args) {
+		return (args[0]>args[1]?1:0); 
+	};
+	Less(args) {
+		return (args[0]<args[1]?1:0); 
+	};
+	Equal(args){
+		return(args[0]==args[1]?1:0);
+	};
+	NotEqual(args) {
+		return(args[0]!=args[1]?1:0);
+	};
+	MoreOrEqual(args) {
+		return (args[0]>=args[1]?1:0); 
+	};
+	LessOrEqual(args) {
+		return (args[0]<=args[1]?1:0); 
+	};
+	NotFunc(args) {
+		return args[0] == 1? 0:1;	
+	};
+	and_block(args) {
+		return(args[0]&&args[1]?1:0);
+	};
+	or_block(args) {
+		return(args[0]||args[1]?1:0);
+	};
+
+	nand_block(args) {
+		return (!(cast.toBoolean(args[0]) && cast.toBoolean(args[1]))?1:0);
+    };
+
+	nor_block(args) {
+		return (!(cast.toBoolean(args[0]) || cast.toBoolean(args[1]))?1:0);
+    };
+
+    xor_block(args) {
+		return (cast.toBoolean(args[0]) !== cast.toBoolean(args[1])?1:0);
+    };
+
+    xnor_block(args) {
+		return (cast.toBoolean(args[0]) === cast.toBoolean(args[1])?1:0);
+    };
+	containsSubstring(args) {
+        return (args[0]).toString().includes(args[1].toString()) ? 1 : 0;
+    };
+	isVar(args){
+		//console.log (variablesDict);
+		//console.log (args[0]);
+		return (args[0] in variablesDict?1:0);
+	};
+
+//opcode: 'inFunc', //Новый блок
+
+	/*
+		Работа со строками
+	*/
+	joinStrings(args) {
+        return args[0].toString() + args[1].toString();
+    };
+	length(args) {
+		return String(args[0]).length; // Преобразует в строку и возвращает длину
+	};
+	convertToLowercase(args) {
+        return args[0].toString().toLowerCase();
+    };
+    convertToUppercase(args) {
+        return args[0].toString().toUpperCase();
+    };
+	getCharacterAtIndex(args) {
+        if (args[0] < 0 || args[0] >= args[1].toString().length) {
+            throw new Error("Index out of bounds");
+        }
+        return args[1].toString().charAt(args[0]);
+    };
+	getSubstringFromRange(args) {
+        if (args[0] < 0 || args[1] >= args[2].length || args[0] > args[1] ) {
+            throw new Error("Invalid range");
+        }
+        return args[2].substring(args[0], args[1] + 1);
+    };
+	getItemFromSplit(args) {
+        const parts = args[2].split(args[1]);
+        if (args[0] < 0 || args[0] >= parts.length) {
+            throw new Error("Index out of bounds");
+        }
+        return parts[args[0]];
+    };
+	replaceSubstring(args) {
+        return args[2].split(args[0]).join(args[1]);
+    };
+	countSubstrings(args) {
+        if (!args[0]) {
+            throw new Error("Empty substring provided");
+        }
+        return args[1].toString().split(args[0].toString()).length - 1;
+    };
+    indexOfSubstring(args) {
+        return args[1].toString().indexOf(args[0].toString());
+    };
+
+	/*
+		Работа с переменными
+	*/
+	getVar(args){
+		variables.getValue(args[0]);
+	};
+	setVar(args){
+		return setVarValue(args[0],args[1]);
+	};
+	summVar(args){
+		//console.log(args);
+		return setVarValue(args[0],variables.getValue(args[0])+args[1]);
+	};
+	subtractVar(args){
+		return setVarValue(args[0],variables.getValue(args[0])-args[1]);
+	};
+	multiplyVar(args){
+		return setVarValue(args[0],variables.getValue(args[0])*args[1]);
+	};
+	divideVar(args){
+		return setVarValue(args[0],variables.getValue(args[0])/args[1]);
+	};
+	powerVar(args){
+		return setVarValue(args[0],variables.getValue(args[0])**args[1]);
+	};
+}
+ext.register(baseModule);
+
+/*
+class PenModule {
+    constructor(canvasId, radiusColorDict = null) {
+      this.canvas = document.getElementById(canvasId);
+      this.ctx = this.canvas.getContext('2d');
+      this.setRadiusColorDict(radiusColorDict);
+    }
+  
+    setRadiusColorDict(radiusColorDict) {
+        const defaultRadiusColorDict = [
+          ['radius', 20],
+          ['colorFill', 'red'],
+          ['colorOutline', 'black'],
+          ['widthOutline', 6]
+        ];
+      
+        this.radiusColorMap = new Map(defaultRadiusColorDict);
+      
+        if (radiusColorDict) {
+          for (const [key, value] of radiusColorDict) {
+            this.radiusColorMap.set(key, value);
+          }
+        }
+      
+        // If any key is missing from radiusColorDict, set its default value
+        for (const [key, value] of defaultRadiusColorDict) {
+          if (!this.radiusColorMap.has(key)) {
+            this.radiusColorMap.set(key, value);
+          }
+        }
+    }
+  
+    applyDefaultCanvasSize() {
+      this.canvas.width = window.innerWidth;
+      this.canvas.height = window.innerHeight;
+    }
+
+    createCanvas(width = window.innerWidth, height = window.innerHeight) {
+      this.canvas = document.createElement('canvas');
+      this.canvas.width = width;
+      this.canvas.height = height;
+      document.body.appendChild(this.canvas);
+    }
+  
+    deleteCanvas() {
+      if (this.canvas && this.canvas.parentNode) {
+        this.canvas.parentNode.removeChild(this.canvas);
+      }
+    }
+  
+    clearCanvas() {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+  
+    drawShape(shapeFunction, x, y, fill = false, outline = true) {
+      this.applyDefaultCanvasSize();
+      const radius = this.radiusColorMap.get('radius');
+      const colorFill = this.radiusColorMap.get('colorFill');
+      const colorOutline = this.radiusColorMap.get('colorOutline');
+      const widthOutline = this.radiusColorMap.get('widthOutline');
+  
+      this.ctx.save();
+      this.ctx.beginPath();
+      shapeFunction.call(this, x, y, radius);
+      if (fill && !outline) {
+        this.ctx.fillStyle = colorFill;
+        this.ctx.fill();
+      } else if (!fill && outline){
+        this.ctx.lineWidth = widthOutline;
+        this.ctx.strokeStyle = colorOutline;
+        this.ctx.stroke();
+      } else {
+        this.ctx.fillStyle = colorFill;
+        this.ctx.lineWidth = widthOutline;
+        this.ctx.strokeStyle = colorOutline;
+        this.ctx.fill();
+        this.ctx.stroke();
+      }
+      this.ctx.restore();
+    }
+  
+    drawPoint(pointX, pointY) {
+      this.drawShape(this.drawArc, pointX, pointY, true, false);
+    }
+  
+    drawCircle(circleX, circleY, fill = false) {
+      this.drawShape(this.drawArc, circleX, circleY, fill);
+    }
+  
+    drawSemiCircle(semiCircleX, semiCircleY, fill = false) {
+      this.drawShape(this.drawSemiArc, semiCircleX, semiCircleY, fill);
+    }
+  
+    drawLine(startX, startY, endX, endY) {
+      this.applyDefaultCanvasSize();
+      const color = this.radiusColorMap.get('colorFill');
+      const widthOutline = this.radiusColorMap.get('widthOutline');
+      const centerStartX = startX + this.canvas.width / 2;
+      const centerStartY = startY + this.canvas.height / 2;
+      const centerEndX = endX + this.canvas.width / 2;
+      const centerEndY = -1 * endY + this.canvas.height / 2;
+  
+      this.ctx.save();
+      this.ctx.beginPath();
+      this.ctx.moveTo(centerStartX, centerStartY);
+      this.ctx.lineTo(centerEndX, centerEndY);
+      this.ctx.lineWidth = widthOutline;
+      this.ctx.strokeStyle = color;
+      this.ctx.stroke();
+      this.ctx.restore();
+    }
+  
+    drawSquare(squareX, squareY, size = 100, fill = false) {
+      this.applyDefaultCanvasSize();
+      const centerX = squareX + this.canvas.width / 2 + size / 2 * -1;
+      const centerY = squareY + this.canvas.height / 2 + size / 2 * -1;
+      const color = fill ? this.radiusColorMap.get('colorFill') : this.radiusColorMap.get('colorOutline');
+  
+      this.ctx.save();
+      this.ctx.beginPath();
+      if (fill) {
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(centerX, centerY, size, size);
+      } else {
+        this.ctx.strokeStyle = color;
+        this.ctx.strokeRect(centerX, centerY, size, size);
+      }
+      this.ctx.restore();
+    }
+  
+    drawArc(x, y, radius) {
+      const centerX = x + this.canvas.width / 2;
+      const centerY = y + this.canvas.height / 2;
+      this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+    }
+  
+    drawSemiArc(x, y, radius) {
+      const centerX = x + this.canvas.width / 2;
+      const centerY = y + this.canvas.height / 2;
+      this.ctx.arc(centerX, centerY, radius, 0, Math.PI, false);
+    }
+    
+    getInfo() {
+        return {
+          id: 'PenModule',
+          name: 'Pen Module',
+          description: 'Provides methods to draw shapes on canvas.',
+          blocks: [
+            {
+              text: 'Draw Point at x: [ ] y: [ ]',
+              opcode: 'drawPoint',
+              description: 'Draws a point on the canvas.'
+            },
+            {
+              text: 'Draw Circle at x: [ ] y: [ ]',
+              opcode: 'drawCircle',
+              description: 'Draws a circle on the canvas.'
+            },
+            {
+              text: 'Draw Semi-Circle at x: [ ] y: [ ]',
+              opcode: 'drawSemiCircle',
+              description: 'Draws a semi-circle on the canvas.'
+            },
+            {
+              text: 'Draw Line from (x1: [ ] y1: [ ]) to (x2: [ ] y2: [ ])',
+              opcode: 'drawLine',
+              description: 'Draws a line on the canvas.'
+            },
+            {
+              text: 'Draw Square at x: [ ] y: [ ] size: [ ]',
+              opcode: 'drawSquare',
+              description: 'Draws a square on the canvas.'
+            },
+            {
+              text: 'Create Canvas with width: [ ] height: [ ]',
+              opcode: 'createCanvas',
+              description: 'Creates a new canvas with specified width and height.'
+            },
+            {
+              text: 'Delete Canvas',
+              opcode: 'deleteCanvas',
+              description: 'Deletes the canvas from the DOM.'
+            },
+            {
+              text: 'Clear Canvas',
+              opcode: 'clearCanvas',
+              description: 'Clears all drawings on the canvas.'
+            }
+          ]
+        };
+    }    
+  }
+ext.register(PenModule);*/
+
+/*End Modules*/	
+
+//const editTextElement = document.getElementById('editText');
+const submitButton = document.getElementById('submitButton');
+const outputElement = document.getElementById('output');
+const editTextElement = document.querySelector('textarea');
+
+var keys = new Map();
+//document.body.innerHTML = "Keys currently pressed: "
+/*window.addEventListener("keydown",
+    function(e){
+        keys.set(e.keyCode,e.key);
+        var keysArray = getNumberArray(keys);
+        //document.body.innerHTML = "Keys currently pressed:" + keysArray;
+		console.log(keys);
+		keys.delete(e.keyCode);
+        
+		
+        if(keysArray.toString() == "17,65"){
+            document.body.innerHTML += " Select all!"
+        }
+		
+    },
+false);*/
+
+
+/*window.addEventListener('keyup',
+    function(e){
+        keys.delete(e.keyCode);
+        //document.body.innerHTML = "Keys currently pressed: " + getNumberArray(keys);
+    },
+false);
+
+
+function getNumberArray(arr){
+    var newArr = new Array();
+    for(var i = 0; i < arr.length; i++){
+        if(typeof arr[i] == "number"){
+            newArr[newArr.length] = arr[i];
+        }
+    }
+    return newArr;
+}*/
+
+//При нажатии кнопки "submitButton"
+submitButton.addEventListener('click', function() { 
+	const startTime = Date.now();
+	const editTextValue = editTextElement.value;
+	// Пример использования
+	//let textVar = openBrackets(editTextElement.value).text;
+	//let args = openBrackets(editTextElement.value).args;
+	const result2 = parser(editTextElement.value);
+	const endTime = Date.now();
+	const executionTime = endTime - startTime;
+	myFunction(`${result2 + '\nRunning Time: ' + executionTime}`);
+});
+
+//Вывод значения в "output"
+function myFunction(text) {
+    // Ваш код, использующий текст из editText
+    outputElement.innerHTML = 'Program returned: ' + text;
+}
+editTextElement.value=`rys {
+	if (!((coins)isvar)){
+	  (coins) = (0)
+	  (upCost) = (10)
+	  (coinsPerClick) = (1)
+	}
+	if ((upCost)<=(coins)){
+		(coins) -= (upCost)
+		(coinsPerClick) += (1)
+		(upCost) = (round((upCost)*(1.5)))
+		(Вы купили улучшение! Теперь +coinsPerClick = )join(coinsPerClick)
+	} else {
+		(coins) += ((coinsPerClick))
+		(Всего coins: )join((coins)join((, до следующего улучшения: )join(upCost)))
+	}
+}`
+	</script>
+	<!--Тест Canvas.--> 
+	<!--<div id="canvas-container">
+		<canvas id="canvas" width="50" height="100" style="transform: scale(1);"></canvas>
+	</div>
+	<script src="js/CanvasWorkTest.js"></script>-->
+	
+	<!--Тест вставки файла--> <!--<input type="file" id="fileInput" />-->
+	
+	
+
+
+</body>
+</html>
