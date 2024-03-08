@@ -5,9 +5,11 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 	<title>RayScript.JS</title>
 	<style>
+
 		body{
 			background-color: black;
 		}
+
 		#canvas-container {
 		  position: absolute;
 		  top: 0;
@@ -29,48 +31,33 @@
 		  object-fit: contain;
 		  object-position: center;
 		}
+
 		textarea {
 			width: 500px;
 			height: 200px;
 			font-size: 16px;
 			padding: 10px;
 		}
+
 	</style>
+
+	<textarea id="TextArea" rows="10" cols="50">Включите JavaScript в вашем браузере, иначе RayScript превращается в ленивого котика :(</textarea>
+	<button id="CompileButton">Compile</button>
+	<button id="StartButton">Start</button>
+	<div id="Output" style="color:white"></div>
+
 </head>
+
 <body>
-<textarea id="editText" rows="10" cols="50"></textarea>
-<button id="submitButton">compile</button>
-<button id="startButton">Start</button>
-<div id="output" style="color:white"></div>
-
-
+	<!--Classes-->
 <script>
-
-//TODO:Заменить стиль кода, сделать нормальный стиль кода
-
-const 
-	DEBUG = true;
-
-var
-	VariablesMap = new Map(),
-	ReturnValue = 0; //Кол-во return в функции (Для работы с return (return abc))
-	
-function setVarValue(Name, Value) {
-	VariablesMap.set(Name, Value);
-	return Value
-}
-
-function getVarValue(Name) {
-	return VariablesMap.get(Name) ?? 0
-}
-
+/*Classes*/
 class BracketData {
   constructor(Text = "", Args = [], Commands = [], Type = "", Func = "", ArgsType = [], Value = 0) {
     this._Text = Text,
     this._Args = Args,
     this._Commands = Commands,
     this._Type = Type,
-    this._Func = Func,
     this._ArgsType = ArgsType,
 	  this._Value = Value;	
   }
@@ -90,10 +77,6 @@ class BracketData {
 
   get Type() {
     return this._Type
-  }
-
-  get Func() {
-    return this._Func
   }
 
   get ArgsType() {
@@ -119,10 +102,6 @@ class BracketData {
   
   setType(Type) {
     this._Type = Type
-  }
-
-  setFunc(Func) {
-    this._Func = Func
   }
 
   setArgsType(ArgsType) {
@@ -159,10 +138,6 @@ class BracketData {
     delete this._Commands //= null
   }
 
-  deleteFunc() {
-    delete this._Func //= null
-  }
-
   deleteArgsType() {
     delete this._ArgsType //= null
   }
@@ -171,10 +146,78 @@ class BracketData {
     delete this._Value //= null
   }
 }
+/*
+ Класс extensions
+ //TODO: Сделать проверку кол-ва аргументов,  ??задать тип данных для работы с блоками
 
+ Принимает модуль, добавляет команды в commands
+ Добавляет значения блоков в blocks (Распределяя по классам)
+ modules содержит все подключённые модули а также их описание, color и ссылка на документацию
+*/
+class Extensions {
+  constructor() {
+    this.Commands = new Map();
+    this.Blocks = new Map();
+    this.Modules = new Map();
+  }
+  
+  register(Clazz) { //Регистрация нового модуля
+		if (isNotClassValid(Clazz)) {
+			throw new Error('Invalid class: ' + Clazz.name);
+		}
+		const Info = Clazz.prototype.getInfo();
+		const ModuleInfo = {
+				Name: Info.name,
+				Color: Info.color, // pure red
+				DocsURI: Info.docsURI, //Документация к модулю
+				Description: Info.description //краткое описание модуля
+		}
+		this.Modules.set(Info.id, ModuleInfo);
+
+		// Registration code remains the same
+		// Регистрация блоков
+		for (const Block of Info.blocks) {
+			//Регистрация команд
+			//debug? console.log(openAllBrackets(key)):"";
+			const Key = Block.text; // Ключ без пробелов
+			let OpenedBrackets = openAllBrackets(Key);
+			this.Commands.set(OpenedBrackets.Text, {
+
+				ArgsType: Block.args_type,
+				NotVarValue: Block.notVarValue,
+				Func: Clazz.prototype[Block.opcode]  //возможно стоит изменить это
+				
+				//id: info.id,
+				//opcode: block.opcode,
+				//type: openBrackets(key).type,
+			});
+			//Регистрация блоков
+			const BlocksForClass = this.Blocks.get(Info.id) || {};
+			BlocksForClass[Block.text] = {
+				Type: Block.type,
+				Description: Block.description,
+				Args: Block.args
+			};
+			this.Blocks.set(Info.id, BlocksForClass);
+		}
+		return this;
+
+		function isNotClassValid(Clazz) {
+			return !(Clazz.prototype && Clazz.prototype.getInfo && typeof Clazz.prototype.getInfo === 'function');
+		}
+  }
+}
+
+</script>
+	<!--Functions-->
+<script>
 /*
  Функция openAllBrackets
- TODO: Поменять комментарии в функциях. Сделать работу с [массивами]. Сделать работу с массивом из команд (Type = "commandArray")
+ TODO: 
+	*Поменять комментарии в функциях. 
+	*Сделать работу с [массивами]. 
+	*Сделать работу с массивом из команд (Type = "commandArray")
+	*Сделать работу с комментариями // /* * / (Желательно сделать возможность просматривать комментарий прямо для функции)
  
  args:
 	Text -> текст кода RayScript
@@ -264,11 +307,6 @@ function openAllBrackets(Text) {
 				"{": 1,
 				"}": -1
 			};
-			
-		function pushCommand(){
-			CommandText.trim().length>0?Result.push(CommandText):"";//проверка на пустое значение
-			CommandText=""
-		}
 		
 		for (;(_Text.length>0);) {
 			let Char = _Text[0];
@@ -285,7 +323,12 @@ function openAllBrackets(Text) {
 		
 		pushCommand();
 		
-		return Result
+		return Result;
+
+		function pushCommand(){
+			CommandText.trim().length>0?Result.push(CommandText):"";//проверка на пустое значение
+			CommandText=""
+		}
 	}
 	
 	/*
@@ -314,7 +357,7 @@ function openAllBrackets(Text) {
 		}
 		
 		if (BracketCount >= 1) {
-			debug?  console.warn(`\n[Warning] In opening the brackets of the text: "${CharOpenBracket+Text}"\nThe number of open and closed brackets does not match, ignoring Char "${CharOpenBracket}"`) :"";
+			DEBUG?  console.warn(`\n[Warning] In opening the brackets of the text: "${CharOpenBracket+Text}"\nThe number of open and closed brackets does not match, ignoring Char "${CharOpenBracket}"`) :"";
 			ItText = true
 		}
 		
@@ -370,8 +413,6 @@ function openAllBrackets(Text) {
 	удаляет ненужные return значения (args, commands, text)
 	*/
 	function getType(){
-
-		Data.deleteFunc(); //Убираем из данных Func
 		
 		if (Data.Commands.length){
 			Data.setText(Data.Text.replace(/[\s\t\n]/g, "").toLowerCase());
@@ -431,56 +472,6 @@ function openAllBrackets(Text) {
 		
 		return Data
 	}
-}
-
-
-/*Вызов функции с аргументами и командами*/
-/*!Code Style*/
-function callFunction(_func, _args, _commands, _type) {//TODO: Сделать описание и сделать проверку функций и аргументов, представленных внизу
-	//DEBUG? console.log(_func):"";
-	//DEBUG? console.log(_args,_commands,_type):"";
-	let 
-		result = 0,
-		Command = Ext.Commands.get(_func),
-		Func;
-	
-	//console.log(Command, _args, _commands, _type, _func);
-
-	if (Command??false){
-		Func = Command.Func;
-		//console.log(Func);
-		if (_type==="func") {
-			callFunc()
-		} else {
-			DEBUG? !(_commands).length?console.warn(`\n[Warning] Функция ${_func} не имеет комманд в {commands}`):"":"";
-			result =  Func(...[_args],...[_commands])
-		}
-		
-		function callFunc(){
-			DEBUG?!(_args).length?console.warn(`\n[Warning] Функция ${_func} не имеет аргументов`):"":"";
-			
-			//console.log(_data.args);
-			getArgs();
-			
-			
-			
-			function getArgs(){
-				for (let i = 0; i < (_args).length; i++) {
-					_args[i] =  run(_args[i])
-				}
-				result = Func(...[_args])
-				//console.log(result);
-			}
-		}
-	} 
-	else {
-		DEBUG? Console.warn("Возникли некоторые проблемы в CallFunction()"):"";
-	}
-	
-	
-	
-	
-	return result;
 }
 
 /*
@@ -614,35 +605,15 @@ function parser(Data){
 	
 }
 
-
-/*
-Функция run(_data)
-Запускает func, funcCommands, commandsArray, либо начальную функцию Main если она есть (TODO?)
-Также выполняет вывод значений float, str(varValue(если args_type != varStr, и var есть в наличии :D ),str)
-
-Args:
-	_data	-> Обработанные данные со всеми func,type внутри
-	
-Return:
-	Выполненный код, вывод результата
-*/
-/*!Code Style*/
-async function run(Data){
-	//console.log("run gave _data");
-
-	let
-		Result = Data;
-
-	//console.warn(Result);
-	
-	//TODO: убрать комментарии с Parser после написания этого блока
-	switch (Result._Type?? "default") {	
+function translateJS(Data){
+	//console.log(Data);
+	switch (Data._Type?? "default") {	
 		
 		case "func":
-			return await caseFunc()
+			return caseFunc()
 			
 		case "funcCommands":
-			return await caseFuncCommands()
+			return caseFuncCommands()
 			
 		case "commandsList":
 			break //return caseCommandsList() */
@@ -654,206 +625,201 @@ async function run(Data){
 			return caseStr()
 
 	}	
-	
-	return Result;
-	
-	async function caseFunc(){
-		let
-			Args = [];
-			
-		await getArgs();
-		//console.log(Args)
 
-		let runner = {
-			args: [],
-			type:Result._Type
-		}
-		//console.log(`caseFunc have:`)
-		//console.log(Result);
-		runner['args']=Args;
+	function caseFunc(){
+		let Args = [];
 
-		//console.log(runner)
+		//getArgs();
 
-		return callFunction(
-			_func = Result._Text,
-			_args = runner.args, _commands = [], _type=Result._Type
-		);
-		
-		async function getArgs(){
-			for (let i = 0; i < Data._Args.length; i++) {
-				Args.push(await run(Data._Args[i]));
-			}
-		}
-		
+		return translateFuncToJS(FuncText = Data._Text, Args = Data._Args, Commands=null, Type = Data._Type)
 	}
-	
-	async function caseFuncCommands(){
-		let
-			Args = Result._Args,
-			Commands =Result._Commands;
 
-		//console.log(Commands);
-			
-		return callFunction(
-			_func = Result._Text,
-			_args = Args, _commands = Commands, _type = Result._Type
-		)
+	function caseFuncCommands(){
+		return translateFuncToJS(FuncText = Data._Text, Args = Data._Args, Commands=Data._Commands, Type = Data._Type)
 	}
-	
-	function caseStr(){
-		if (Result._ArgsType??false){
-			//console.log(`getting varSTR`);
-			if (isVar(Result._ArgsType==="varStr")){
-				return getVarValue(Result.Text)
-			}
-		} else if (isVar()) {
-			return getVarValue(Result._Text)
-		}
-		//console.log(Result._Text || 0);
-		return Result._Text || 0;
-		
-		function isVar(notGetValue = false){
-			return notGetValue?false:VariablesMap.has(Result._Text)?true:false
-		}
-	}
-	
+
+
+
 	function caseFloat(){
-		//console.log(Result._Value);
-		return Result._Value;
+		return `${Data._Value}`
+	}
+
+	function caseStr(){
+		return `str("${Data._Text}")`
+	}
+
+}
+
+function translateFuncToJS(FuncText,Args=[],Commands=[],Type){
+	//console.warn(FuncText,Args,Type,Commands);
+	let 
+		_Func = Ext.Commands.get(FuncText),
+		_Args = [],
+		_Commands = [];
+		
+
+	if (!_Func??false){
+		return `None`
+	}
+
+	_Func = _Func.Func;
+
+	switch (Type??"default"){
+		case "func":
+			getArgs();
+			return _Func(...[_Args])
+		
+		case "funcCommands":
+			getArgs();
+			getCommands();
+			
+			return _Func(...[_Args],...[_Commands])
+
+		case "default":
+			return `None`
+	}
+
+	function getArgs(){
+		for (let i = 0; i < (Args).length; i++)
+			_Args.push(translateJS(Args[i]))
+	}
+
+	function getCommands(){
+		let CommandArray = []
+		for (let i = 0; i < (Commands).length; i++) {
+			let CommandsText = "";
+			for (let j = 0; j < (Commands[i]).length; j++){
+				let NextCommandText = (j<((Commands[i]).length-1))?";\n":"";
+				CommandsText += `\t${translateJS(Commands[i][j])}${NextCommandText}`
+			}
+			_Commands.push(CommandsText)
+		}
+
 	}
 }
+</script>
+	<!--Main-->
+<script>
+//TODO:Заменить стиль кода, сделать нормальный стиль кода
+const 
+	DEBUG = false,
+	COMPILE_BUTTON = document.getElementById('CompileButton'),
+	START_BUTTON = document.getElementById('StartButton'),
+	TEXT_AREA_ELEMENT = document.querySelector('TextArea'),
+	OUTPUT_ELEMENT = document.getElementById('Output');
 
-/*!Code Style*/
-function startCommandsFromArray(_commands, _commandReturnValue) {
-	//console.log(_commands);
-  try {
-    let result;
+var
+	VariablesMap = new Map(),
+	TranslateBrackets,
+	LastTextAreaValue,
+	Ext = new Extensions(); //Инициализация дополнений
+	
+/*Events*/
+COMPILE_BUTTON.addEventListener('click', function(){
+	startCompileText(TEXT_AREA_ELEMENT.value)
+});
 
-    for (let i = 0; i < _commands.length; i++) {
-      result = run(_commands[i]);
-			//console.log(result);
+START_BUTTON.addEventListener('click',  function() {
+	let 
+		Result = startEvalText(TranslateBrackets);
+	OUTPUT_ELEMENT.innerHTML = 'Program returned: ' + Result
+});
+/*======*/
 
-      if (returnValue !== _commandReturnValue) {
-        return  result;
-      }
-    }
-
-    return  result;
-  } catch (error) {
-    console.error(error);
-    throw error;
+/*Start .rys code*/
+TEXT_AREA_ELEMENT.value=`rys {
+ if (!((coins)isvar)){
+  (coins) = (0)
+  (upCost) = (10)
+  (coinsPerClick) = (1)
+  Добро пожаловать в игру! Нажмите на "Start", чтобы получить первые очки
+ } else {
+  (coins)+=(coinsPerClick)
+  if ((upCost)<=(coins)){
+   (coins) -= (upCost)
+   (coinsPerClick) += (1)
+   (upCost) = (round((upCost)*(1.5)))
+   (Вы купили улучшение! Теперь +coinsPerClick = ) join (coinsPerClick)
+  } else {
+   (Всего coins: )join((coins)join((, до следующего улучшения: )join(upCost)))
   }
-}
+ }
+}`;
+/*===============*/
+
 
 /*
- Класс extensions
- //TODO: Сделать проверку кол-ва аргументов,  ??задать тип данных для работы с блоками
-
- Принимает модуль, добавляет команды в commands
- Добавляет значения блоков в blocks (Распределяя по классам)
- modules содержит все подключённые модули а также их описание, color и ссылка на документацию
+startCompileText - Представляет текст RayScript в представлении JS
+Args:
+	Text		-> Код языка RayScript
+Return:
+	Result	-> Код языка JS + необходимые функции для модулей
 */
-class Extensions {
-  constructor() {
-    this.Commands = new Map();
-    this.Blocks = new Map();
-    this.Modules = new Map();
-  }
-  
-  register(Clazz) { //Регистрация нового модуля
-		if (isNotClassValid(Clazz)) {
-			throw new Error('Invalid class: ' + Clazz.name);
-		}
-		const Info = Clazz.prototype.getInfo();
-		const ModuleInfo = {
-				Name: Info.name,
-				Color: Info.color, // pure red
-				DocsURI: Info.docsURI, //Документация к модулю
-				Description: Info.description //краткое описание модуля
-		}
-		this.Modules.set(Info.id, ModuleInfo);
-
-		// Registration code remains the same
-		// Регистрация блоков
-		for (const Block of Info.blocks) {
-			//Регистрация команд
-			//debug? console.log(openAllBrackets(key)):"";
-			const Key = Block.text; // Ключ без пробелов
-			let OpenedBrackets = openAllBrackets(Key);
-			this.Commands.set(OpenedBrackets.Text, {
-
-				ArgsType: Block.args_type,
-				NotVarValue: Block.notVarValue,
-				Func: Clazz.prototype[Block.opcode]  //возможно стоит изменить это
-				
-				//id: info.id,
-				//opcode: block.opcode,
-				//type: openBrackets(key).type,
-			});
-			//Регистрация блоков
-			const BlocksForClass = this.Blocks.get(Info.id) || {};
-			BlocksForClass[Block.text] = {
-				Type: Block.type,
-				Description: Block.description,
-				Args: Block.args
-			};
-			this.Blocks.set(Info.id, BlocksForClass);
-		}
-		return this;
-
-		function isNotClassValid(Clazz) {
-			return !(Clazz.prototype && Clazz.prototype.getInfo && typeof Clazz.prototype.getInfo === 'function');
-		}
-  }
-}
-
-const submitButton = document.getElementById('submitButton');
-const startButton = document.getElementById('startButton');
-const editTextElement = document.querySelector('textarea');
-const outputElement = document.getElementById('output');
-
-var parseredBrackets = "";
-let openedBrackets;
-submitButton.addEventListener('click',  function() { 
-	const startTime = Date.now();
-	returnValue = 0;
-	openedBrackets = openAllBrackets(editTextElement.value);
-	//console.log(openedBrackets);
-	parseredBrackets = JSON.parse(JSON.stringify(parser(openedBrackets)));
-	//console.log(parseredBrackets);
-	
-	//parseredBrackets =  JSON.stringify(parser(dictOpenedBrackets));
-	//console.log(JSON.parse(parseredBrackets));
-});
-startButton.addEventListener('click',  async function() { 
-	const startTime = Date.now();
-	const newVar = parseredBrackets;
-	returnValue = 0;
-	async function start(_data){
-		let runned = await run( _data);
-		return runned
-		//console.log(_data);
-		//console.log(runned);
+function startCompileText(Text){
+	if (Text === LastTextAreaValue){
+		DEBUG? console.warn(`\nText in TextArea not changed, ignore new compile`):"";
+		return TranslateBrackets
 	}
-	//console.log(newVar);
-	const result2 = await start(newVar);
-	
-	const endTime = Date.now();
-	const executionTime = endTime - startTime;
-	console.log(`\nRunning Time: ${executionTime}ms`)
-	myFunction(`${result2}`);
-});
 
-//Вывод значения в "output"
-function myFunction(text) {
-    // Ваш код, использующий текст из editText
-    outputElement.innerHTML = 'Program returned: ' + text;
+	let
+		StartTime = Date.now(),
+		ConvertedText = convertText(Text),
+		OpenedBrackets = openAllBrackets(ConvertedText),
+		ParseredBrackets = parser(OpenedBrackets);
+
+	LastTextAreaValue = Text;
+	TranslateBrackets = translateJS(ParseredBrackets);
+	DEBUG? console.log(`RayScript translate to JS with time ${Date.now()-StartTime}ms: \n${TranslateBrackets}`):"";
+
+	return TranslateBrackets;
+
+	function convertText(Text){
+		return Text.split("").map((Char) => {
+			switch (Char) {
+				case "\"":
+					return `\\"`
+				case "'":
+					return "\\'"
+				case "$":
+					return "\\$"
+				default:
+					return Char
+			}
+		}).join("");
+	}
 }
 
+function startEvalText(Text){
+	let 
+		StartTime = Date.now(),
+		Result = eval(Text);
+	
+	DEBUG? console.log(`\nRunning Time: ${Date.now()-StartTime}ms`):"";
 
+	return Result
+}
+
+function setVarValue(Name, Value) {
+	VariablesMap.set(Name, Value);
+	return Value
+}
+
+function getVarValue(Name) {
+	return VariablesMap.get(Name) ?? 0
+}
+
+function str(Text){
+	if (VariablesMap.has(Text)){
+		return getVarValue(Text)
+	}
+
+	return Text
+}
+
+</script>
+	<!--Modules-->
+<script>
 /*Start Modules*/
-var Ext =  new Extensions(); //Инициализация дополнений
-
 class baseModule{
 	getInfo() {
 		return {
@@ -960,9 +926,9 @@ class baseModule{
 				{
 					text: '( ) mod ( )',opcode: 'ModFunc',description: 'Сравнение ONE с TWO',
 				},
-				{
+				/*{
 					text: 'trunc with digits ( ) of ( )',opcode: 'TruncWithDigits',description: 'Округление числа до знака запятой'
-				},
+				},*/
 				
 				/*
 					Условные выражения
@@ -1041,10 +1007,10 @@ class baseModule{
 				{
 					text: 'upper ( )',opcode: 'convertToUppercase',description: 'Преобразует строку a в верхний регистр'
 				},
-				{
+				/*{
 					text: 'letter ( ) of ( )',opcode: 'getCharacterAtIndex',description: 'Возвращает символ строки b по индексу a'
-				},
-				{
+				},*/
+				/*{
 					text: 'letters ( ) to ( ) of ( )',opcode: 'getSubstringFromRange',description: 'Возвращает подстроку c с индексами из диапазона [a..b]'
 				},
 				{
@@ -1058,7 +1024,7 @@ class baseModule{
 				},
 				{
 					text: 'index ( ) of ( )',opcode: 'indexOfSubstring',description: 'Возвращает индекс первого вхождения подстроки a в строку b'
-				},
+				},*/
 				
 				/*
 					Работа с переменными
@@ -1122,143 +1088,96 @@ class baseModule{
 	//Циклы
 	
 	//TODO: добавить return
-	returnFunc(args){
-			/*console.log("return runned");*/
-		returnValue++;
-		return args[0];
+	returnFunc(Args){
+		return `return ${Args[0]}`
 	}
-		rys(_args, _commands) {
-		try {
-		let commandReturnValue = returnValue, command = _commands[0];
-		
-		const result =  startCommandsFromArray(command, commandReturnValue);
-		
-		return result;
-		} catch (error) {
-		console.error(error);
-		throw error;
-		}
+
+	rys(Args, Commands) {
+		return `${Commands[0]}`
 	}
-		repeatFunc(_args,_commands){
-		const 
-			arg = _args[0],
-			command = _commands[0];
-		let 
-			repeatNum =  run(arg),
-			result,
-			commandReturnValue = returnValue,
-			commandsArray = (command);
-
-			/*console.log(commandsArray);*/
-
-		for (let i = 0; i < repeatNum; i++){
-			result =  startCommandsFromArray(commandsArray,commandReturnValue);
-			if (returnValue!=commandReturnValue) {
-				returnValue--;
-				break;
-			}
-		};
-		return result;
+	repeatFunc(args,commands){ //TODO: поработать над временными переменными, чтобы они не совпадали друг с другом
+		return `for(let i=0; i < ${args}; i++){\n\t${commands[0]}\n}`
 	}
-		ifFunc(args,commands){
-		const 
-			arg = args[0],
-			command = commands[0];
+	ifFunc(args,commands){
+		return `if (${args[0]}) {\n${commands[0]}\n}`
+	}
+	ifElseFunc(args, commands){
+		//console.log(args, commands);
+			return `if (${args[0]}) {\n${commands[0]}\n}\nelse{\n${commands[1]}\n}`
+	}
 
-		if ( run(arg)!=0){
-			let commandReturnValue = returnValue;
-			return  startCommandsFromArray(command,returnValue)
-		}
-		
-		return 0
-	};
-		ifElseFunc(args, commands){
-		let result;
-		let commandReturnValue = returnValue;
-		let commandsArray
-		if ( run(args[0])!=0) {
-			commandsArray = commands[0];
-		} else {
-			commandsArray = commands[1];
-		}	
-		return  startCommandsFromArray(commandsArray,commandReturnValue);
-	};
-	
 	/*
 		Математические выражения
 	*/
-	add(args) {
+	add(Args) {
 		/*console.log(args);*/
-		return args[0] + args[1];
-	};
-	subtract(args) {
-		return args[0] - args[1];
-	};
-	multiply(args) {
-		return args[0] * args[1];
-	};
-	divide(args) {
-		if (args[1] === 0) {
-			throw new Error("Деление на ноль");
-		}
-		return args[0] / args[1];
-	};
-	power(args){
-		return args[0] ** args[1];
-	};
+		return `(${Args[0]}+${Args[1]})`/*args[0] + args[1];*/
+	}
+	subtract(Args) {
+		return `(${Args[0]}-${Args[1]})`
+	}
+	multiply(Args) {
+		return `((${Args[0]})*(${Args[1]}))`
+	}
+	divide(Args) {
+		return `((${Args[0]})/(${Args[1]}))`
+	}
+	power(Args){
+		return `((${Args[0]})**(${Args[1]}))`
+	}
 	//Более сложные
 	round(args) {
-		return Math.round(args[0]);
-	};
+		return `Math.round(${args[0]})`
+	}
 	abs(args) {
-		return Math.abs(args[0]);
+		return `Math.abs(${args[0]})`
 	};
 	floor(args) {
-		return Math.floor(args[0]);
+		return `Math.floor(${args[0]})`
 	};
 	sqrt(args) {
-		return Math.sqrt(args[0]);
+		return `Math.sqrt(${args[0]})`
 	};
 	ceiling(args) {
-		return Math.ceil(args[0]);
+		return `Math.ceil(${args[0]})`
 	};
 	cos(args) {
-		return Math.cos(args[0]);
+		return `Math.cos(${args[0]})`
 	};
 	sin(args) {
-		return Math.sin(args[0]);
+		return `Math.sin(${args[0]})`
 	};
 	tan(args) {
-		return Math.tan(args[0]);
+		return `Math.tan(${args[0]})`
 	};
 	asin(args) {
-		return Math.asin(args[0]);
+		return `Math.asin(${args[0]})`
 	};
 	acos(args) {
-		return Math.acos(args[0]);
+		return `Math.acos(${args[0]})`
 	};
 	atan(args) {
-		return Math.atan(args[0]);
+		return `Math.atan(${args[0]})`
 	};
 	ln(args) {
-		return Math.log(args[0]);
+		return `Math.log(${args[0]})`
 	};
 	exp(args) {
-		return Math.exp(args[0]);
+		return `Math.exp(${args[0]})`
 	};
 	log10(args) {
-		return Math.log10(args[0]);
+		return `Math.log10(${args[0]})`
 	};
-	random(args) { /*TODO!: Сделать округление до целого числа*/
-		return Math.random() * (args[0] - 0) + 0; /*Генерация случайного числа от 0 до args[0]*/
-	};
+	random(args) {
+		return `Math.floor(Math.random() * (${args[0]}))`//Math.random() * (args[0] - 0) + 0; /*Генерация случайного числа от 0 до args[0]*/
+	}
 	trunc(args) {
-		return Math.trunc(args[0]);
+		return `Math.trunc(${args[0]})`
 	};
 	ModFunc(args){
-		return (args[0]%args[1]);
+		return `(${args[0]}%${args[1]})`
 	};
-	TruncWithDigits(args) {
+	/*TruncWithDigits(args) { //TODO: поработать над этимм
 		let n = Math.floor(cast.toNumber(args[1]));
 		if (n >= 1) {
 			n = 10 ** n;
@@ -1268,62 +1187,63 @@ class baseModule{
 			return cast.toNumber(args[0]);
 		}
 		return Math.trunc(cast.toNumber(args[0]));
-	};
+	};*/
 	
 	/*
 		Условные выражения
 	*/
 	More(args) {
-		return (args[0]>args[1]?1:0); 
+		return `(${args[0]}>${args[1]}?1:0)` 
 	};
 	Less(args) {
-		return (args[0]<args[1]?1:0); 
+		return `(${args[0]}<${args[1]}?1:0)` 
 	};
 	Equal(args){
-		return(args[0]==args[1]?1:0);
+		return `(${args[0]}==${args[1]}?1:0)`
 	};
 	NotEqual(args) {
-		return(args[0]!=args[1]?1:0);
+		return `(${args[0]}!=${args[1]}?1:0)`
 	};
 	MoreOrEqual(args) {
-		return (args[0]>=args[1]?1:0); 
+		return `(${args[0]}>=${args[1]}?1:0)`
 	};
 	LessOrEqual(args) {
-		return (args[0]<=args[1]?1:0); 
+		return `(${args[0]}<=${args[1]}?1:0)` 
 	};
 	NotFunc(args) {
-		return args[0] == 1? 0:1;	
+		return `(${args[0]}==1?0:1)`	
 	};
 	and_block(args) {
-		return(args[0]&&args[1]?1:0);
+		return `(${args[0]}&&${args[1]}?1:0)`
 	};
 	or_block(args) {
-		return(args[0]||args[1]?1:0);
+		return`(${args[0]}||${args[1]}?1:0)`
 	};
 
 	nand_block(args) {
-		return (!(cast.toBoolean(args[0]) && cast.toBoolean(args[1]))?1:0);
+		return `(!(cast.toBoolean(${args[0]}) && cast.toBoolean(${args[1]}))?1:0)`
 	};
 
 	nor_block(args) {
-		return (!(cast.toBoolean(args[0]) || cast.toBoolean(args[1]))?1:0);
+		return `(!(cast.toBoolean(${args[0]}) || cast.toBoolean(${args[1]}))?1:0)`
 	};
 
 	xor_block(args) {
-		return (cast.toBoolean(args[0]) !== cast.toBoolean(args[1])?1:0);
+		return `(cast.toBoolean(${args[0]}) !== cast.toBoolean(${args[1]})?1:0)`
 	};
 
 	xnor_block(args) {
-		return (cast.toBoolean(args[0]) === cast.toBoolean(args[1])?1:0);
+		return `(cast.toBoolean(${args[0]}) === cast.toBoolean(${args[1]})?1:0)`;
 	};
 	containsSubstring(args) {
-		return (args[0]).toString().includes(args[1].toString()) ? 1 : 0;
+		return `((${args[0]}).toString().includes(${args[1]}.toString()) ? 1 : 0)`;
 	};
 	isVar(args){
 		/*//console.log(args);
 		//console.log (variablesDict);
 		//console.log (args[0]);*/
-		return (VariablesMap.has(args[0])?1:0);
+		let VarName = args[0].replace("str","");
+		return `(VariablesMap.has(${VarName})?1:0)`
 	};
 
 //opcode: 'inFunc', //Новый блок
@@ -1332,24 +1252,24 @@ class baseModule{
 		Работа со строками
 	*/
 	joinStrings(args) {
-		return args[0].toString() + args[1].toString();
+		return `(${args[0]}.toString() + ${args[1]}.toString())`
 	};
 	length(args) {
-		return String(args[0]).length; /*// Преобразует в строку и возвращает длину*/
+		return `(String(${args[0]}).length)`; /*// Преобразует в строку и возвращает длину*/
 	};
 	convertToLowercase(args) {
-		return args[0].toString().toLowerCase();
+		return `(${args[0]}.toString().toLowerCase())`;
 	};
 	convertToUppercase(args) {
-		return args[0].toString().toUpperCase();
+		return `(${args[0]}.toString().toUpperCase())`;
 	};
-	getCharacterAtIndex(args) {
+	/*getCharacterAtIndex(args) {
 		if (args[0] < 0 || args[0] >= args[1].toString().length) {
 			throw new Error("Index out of bounds");
 		}
 		return args[1].toString().charAt(args[0]);
-	};
-	getSubstringFromRange(args) {
+	};*/
+	/*getSubstringFromRange(args) {
 		if (args[0] < 0 || args[1] >= args[2].length || args[0] > args[1] ) {
 			throw new Error("Invalid range");
 		}
@@ -1373,56 +1293,44 @@ class baseModule{
 	};
 	indexOfSubstring(args) {
 		return args[1].toString().indexOf(args[0].toString());
-	};
+	};*/
 
 	/*
 		Работа с переменными
 	*/
 	getVar(args){
-		getVarValue(args[0]);
-	};
+		let VarName = args[0].replace("str","");
+		return `getVarValue(${VarName})`
+	}
 	setVar(args){
-		return setVarValue(args[0],args[1]);
-	};
-	summVar(args){
-		return setVarValue(args[0],getVarValue(args[0])+args[1]);
-	};
-	subtractVar(args){
-		return setVarValue(args[0],getVarValue(args[0])-args[1]);
-	};
-	multiplyVar(args){
-		return setVarValue(args[0],getVarValue(args[0])*args[1]);
-	};
-	divideVar(args){
-		return setVarValue(args[0],getVarValue(args[0])/args[1]);
-	};
-	powerVar(args){
-		return setVarValue(args[0],getVarValue(args[0])**args[1]);
-	};
+		let VarName = args[0].replace("str","");
+		return `setVarValue(${VarName},${args[1]})`;
+	}
+	//TODO: возможны ошибки в переменных в первом аргументе
+	summVar(Args){
+		let VarName = Args[0].replace("str","");
+		return `(setVarValue(${VarName},getVarValue(${VarName})+${Args[1]}))`
+	}
+	subtractVar(Args){
+		let VarName = Args[0].replace("str","");
+		return `(setVarValue(${VarName},getVarValue(${VarName})-${Args[1]}))`
+	}
+	multiplyVar(Args){
+		let VarName = Args[0].replace("str","")
+		return `(setVarValue(${VarName},getVarValue(${VarName})*${Args[1]}))`
+	}
+	divideVar(Args){
+		let VarName = Args[0].replace("str","")
+		return `(setVarValue(${VarName},getVarValue(${VarName})/${Args[1]}))`
+	}
+	powerVar(Args){
+		let VarName = Args[0].replace("str","")
+		return `(setVarValue(${VarName},getVarValue(${VarName})**${Args[1]}))`
+	}
 }
-Ext =  Ext.register(baseModule);
-/*End Modules*/
-
-editTextElement.value=`rys {
- if (!((coins)isvar)){
-  (coins) = (0)
-  (upCost) = (10)
-  (coinsPerClick) = (1)
-  Добро пожаловать в игру! Нажмите на "Start", чтобы получить первые очки
- } else {
-  (coins)+=(coinsPerClick)
-  if ((upCost)<=(coins)){
-   (coins) -= (upCost)
-   (coinsPerClick) += (1)
-   (upCost) = (round((upCost)*(1.5)))
-   (Вы купили улучшение! Теперь +coinsPerClick = ) join (coinsPerClick)
-  } else {
-   (Всего coins: )join((coins)join((, до следующего улучшения: )join(upCost)))
-  }
- }
-}`
-
+Ext.register(baseModule);
+/*End Modules*/	
 </script>
 </body>
-</html>
 
+</html>
