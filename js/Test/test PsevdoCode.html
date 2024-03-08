@@ -1,0 +1,24 @@
+<html>
+<script>
+function translatePseudoToJS(pseudoCode) {
+    // Замените ключевые слова псевдо-языка на их эквиваленты в JavaScript
+    const translatedCode = pseudoCode
+        .replace(/вывести/g, 'console.log')
+        .replace(/если/g, 'if')
+        .replace(/иначе/g, 'else')
+        .replace(/иначе если/g, 'else if')
+        .replace(/пока/g, 'while')
+        .replace(/истина/g, 'true')
+        // Добавьте другие правила перевода по мере необходимости
+        ;
+
+    return translatedCode;
+}
+
+// Пример использования
+const pseudoCode = "вывести('Привет, мир!'); если (истина) { вывести('Условие истинно!') } иначе { вывести('Условие ложно!') }";
+const jsCode = translatePseudoToJS(pseudoCode);
+
+console.log(jsCode);
+</script>
+</html>
