@@ -1,8 +1,48 @@
-<html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<title>RayScript.JS</title>
+	<style>
+		body{
+			background-color: black;
+		}
+		#canvas-container {
+		  position: absolute;
+		  top: 0;
+		  left: 0;
+		  width: 100%;
+		  height: 100%;
+		  overflow: hidden;
+		  background-color: black;
+		}
+
+		#canvas {
+		  width: 100%;
+		  height: 100%;
+		  image-rendering: pixelated;
+		  margin: 0 auto;
+		  max-width: 100vw;
+		  max-height: 100vh;
+
+		  object-fit: contain;
+		  object-position: center;
+		}
+		textarea {
+			width: 500px;
+			height: 200px;
+			font-size: 16px;
+			padding: 10px;
+		}
+	</style>
+</head>
 <body>
 <textarea id="editText" rows="10" cols="50"></textarea>
 <button id="submitButton">compile</button>
-<button id="startButton">Start</button>  
+<button id="startButton">Start</button>
+<div id="output" style="color:white"></div>
+
 
 <script>
 
@@ -16,12 +56,12 @@ var
 	ReturnValue = 0; //Кол-во return в функции (Для работы с return (return abc))
 	
 function setVarValue(Name, Value) {
-	variablesMap.set(Name, Value);
-	return _value
+	VariablesMap.set(Name, Value);
+	return Value
 }
 
-function getVarValue(_name) {
-	return variablesMap.get(_name) ?? 0
+function getVarValue(Name) {
+	return VariablesMap.get(Name) ?? 0
 }
 
 class BracketData {
@@ -395,8 +435,8 @@ function openAllBrackets(Text) {
 /*Вызов функции с аргументами и командами*/
 /*!Code Style*/
 function callFunction(_func, _args, _commands, _type) {//TODO: Сделать описание и сделать проверку функций и аргументов, представленных внизу
-	DEBUG? console.log(_func):"";
-	DEBUG? console.log(_args,_commands,_type):"";
+	//DEBUG? console.log(_func):"";
+	//DEBUG? console.log(_args,_commands,_type):"";
 	let 
 		result;
 	
@@ -420,7 +460,7 @@ function callFunction(_func, _args, _commands, _type) {//TODO: Сделать о
 				_args[i] =  run(_args[i])
 			}
 			result = _func(...[_args])
-			console.log(result);
+			//console.log(result);
 		}
 	}
 	
@@ -435,10 +475,8 @@ args:
 	Data -> object BracketData() - Раскрытые скобки при помощи OpenAllBrackets()
 */
 function parser(Data){
-	console.log(`Parser have _data:`);
-	console.log(Data);
 
-	let 
+	let
 		Result = Data;
 
 	switch (Data.Type?? "default") {	
@@ -543,7 +581,7 @@ function parser(Data){
 				выполнить проверку внутри блока на кол-во аргументов и т.п.)
 				*/
 			} else {
-				DEBUG? console.warn(Result):"";
+				//DEBUG? console.warn(Result):"";
 				Result.setFunc(("function ") + ((Command.Func).toString().replace(/[\t\n]/g, "")))
 			}
 		}
@@ -573,13 +611,12 @@ Return:
 */
 /*!Code Style*/
 function run(Data){
-	console.log("run gave _data");
-	
+	//console.log("run gave _data");
 
-	const
+	let
 		Result = Data;
 
-	console.warn(Result);
+	//console.warn(Result);
 	
 	//TODO: убрать комментарии с Parser после написания этого блока
 	switch (Result._Type?? "default") {	
@@ -604,18 +641,20 @@ function run(Data){
 	
 	function caseFunc(){
 		let
-			Args = Result._Args;
+			Args = [];
 			
 		getArgs();
-		console.log(Args)
+		//console.log(Args)
 
 		let runner = {
 			args: [],
 			type:Result._Type
 		}
-		runner['args']=JSON.parse(JSON.stringify(Args));
+		//console.log(`caseFunc have:`)
+		//console.log(Result);
+		runner['args']=Args;
 
-		console.log(runner)
+		//console.log(runner)
 
 		return callFunction(
 			_func = eval(`(${Result._Func})`),
@@ -623,10 +662,8 @@ function run(Data){
 		);
 		
 		function getArgs(){
-			for (let i = 0; i < Args.length; i++) {
-				
-				Args[i] = run(Args[i]);
-				
+			for (let i = 0; i < Data._Args.length; i++) {
+				Args.push(run(Data._Args[i]));
 			}
 		}
 		
@@ -635,15 +672,13 @@ function run(Data){
 	function caseFuncCommands(){
 		let
 			Args = Result._Args,
-			Commands = Result._Commands;
+			Commands =Result._Commands;
+
+		//console.log(Commands);
 			
 		return callFunction(
 			eval(`(${Result._Func})`),
-			{
-				args:Args,
-				type:Result._Type,
-				commands:Commands
-			}
+			_args = Args, _commands = Commands, _type = Result._Type
 		)
 	}
 	
@@ -656,27 +691,29 @@ function run(Data){
 		} else if (isVar()) {
 			return getVarValue(Result._Text)
 		}
-		console.log(Result._Text || 0);
+		//console.log(Result._Text || 0);
 		return Result._Text || 0;
 		
 		function isVar(notGetValue = false){
-			return notGetValue?false:variablesMap.has(Result._Text)?true:false
+			return notGetValue?false:VariablesMap.has(Result._Text)?true:false
 		}
 	}
 	
 	function caseFloat(){
-		console.log(Result._Value);
+		//console.log(Result._Value);
 		return Result._Value;
 	}
 }
 
 /*!Code Style*/
  function startCommandsFromArray(_commands, _commandReturnValue) {
+	//console.log(_commands);
   try {
     let result;
 
     for (let i = 0; i < _commands.length; i++) {
       result =  run(_commands[i]);
+			//console.log(result);
 
       if (returnValue !== _commandReturnValue) {
         return  result;
@@ -755,6 +792,8 @@ class Extensions {
 const submitButton = document.getElementById('submitButton');
 const startButton = document.getElementById('startButton');
 const editTextElement = document.querySelector('textarea');
+const outputElement = document.getElementById('output');
+
 var parseredBrackets = "";
 let openedBrackets;
 submitButton.addEventListener('click',  function() { 
@@ -762,7 +801,7 @@ submitButton.addEventListener('click',  function() {
 	returnValue = 0;
 	openedBrackets = openAllBrackets(editTextElement.value);
 	console.log(openedBrackets);
-	parseredBrackets = parser(openedBrackets);
+	parseredBrackets = JSON.parse(JSON.stringify(parser(openedBrackets)));
 	console.log(parseredBrackets);
 	
 	//parseredBrackets =  JSON.stringify(parser(dictOpenedBrackets));
@@ -773,12 +812,24 @@ startButton.addEventListener('click',  function() {
 	const newVar = parseredBrackets;
 	returnValue = 0;
 	function start(_data){
-		let runned =  run( JSON.parse(JSON.stringify(_data)));
-		console.log(_data);
-		console.log(runned);
+		let runned =  run( _data);
+		return runned
+		//console.log(_data);
+		//console.log(runned);
 	}
-	start(newVar);
+	console.log(newVar);
+	const result2 = start(newVar);
+	
+	const endTime = Date.now();
+	const executionTime = endTime - startTime;
+	myFunction(`${result2 + '\nRunning Time: ' + executionTime}`);
 });
+
+//Вывод значения в "output"
+function myFunction(text) {
+    // Ваш код, использующий текст из editText
+    outputElement.innerHTML = 'Program returned: ' + text;
+}
 
 /*Start Modules*/
 var Ext =  new Extensions(); //Инициализация дополнений
@@ -1052,14 +1103,16 @@ class baseModule{
 	
 	//TODO: добавить return
 	returnFunc(args){
-			console.log("return runned");
+			/*console.log("return runned");*/
 		returnValue++;
 		return args[0];
 	}
 		rys(_args, _commands) {
 		try {
 		let commandReturnValue = returnValue, command = _commands[0];
+		
 		const result =  startCommandsFromArray(command, commandReturnValue);
+		
 		return result;
 		} catch (error) {
 		console.error(error);
@@ -1067,8 +1120,6 @@ class baseModule{
 		}
 	}
 		repeatFunc(_args,_commands){
-		//console.log (`repeat args: `);
-		//console.log (args)
 		const 
 			arg = _args[0],
 			command = _commands[0];
@@ -1078,9 +1129,10 @@ class baseModule{
 			commandReturnValue = returnValue,
 			commandsArray = (command);
 
+			/*console.log(commandsArray);*/
+
 		for (let i = 0; i < repeatNum; i++){
 			result =  startCommandsFromArray(commandsArray,commandReturnValue);
-			//console.log(commandsArray);
 			if (returnValue!=commandReturnValue) {
 				returnValue--;
 				break;
@@ -1089,13 +1141,11 @@ class baseModule{
 		return result;
 	}
 		ifFunc(args,commands){
-		//console.log(args);
 		const 
 			arg = args[0],
 			command = commands[0];
 
 		if ( run(arg)!=0){
-			//let result,
 			let commandReturnValue = returnValue;
 			return  startCommandsFromArray(command,returnValue)
 		}
@@ -1118,7 +1168,7 @@ class baseModule{
 		Математические выражения
 	*/
 	add(args) {
-		console.log(args);
+		/*console.log(args);*/
 		return args[0] + args[1];
 	};
 	subtract(args) {
@@ -1179,8 +1229,8 @@ class baseModule{
 	log10(args) {
 		return Math.log10(args[0]);
 	};
-	random(args) { //TODO!: Сделать округление до целого числа
-		return Math.random() * (args[0] - 0) + 0; // Генерация случайного числа от 0 до args[0]
+	random(args) { /*TODO!: Сделать округление до целого числа*/
+		return Math.random() * (args[0] - 0) + 0; /*Генерация случайного числа от 0 до args[0]*/
 	};
 	trunc(args) {
 		return Math.trunc(args[0]);
@@ -1250,9 +1300,9 @@ class baseModule{
 		return (args[0]).toString().includes(args[1].toString()) ? 1 : 0;
 	};
 	isVar(args){
-		//console.log(args);
+		/*//console.log(args);
 		//console.log (variablesDict);
-		//console.log (args[0]);
+		//console.log (args[0]);*/
 		return (variablesMap.has(args[0])?1:0);
 	};
 
@@ -1265,7 +1315,7 @@ class baseModule{
 		return args[0].toString() + args[1].toString();
 	};
 	length(args) {
-		return String(args[0]).length; // Преобразует в строку и возвращает длину
+		return String(args[0]).length; /*// Преобразует в строку и возвращает длину*/
 	};
 	convertToLowercase(args) {
 		return args[0].toString().toLowerCase();
@@ -1315,7 +1365,6 @@ class baseModule{
 		return setVarValue(args[0],args[1]);
 	};
 	summVar(args){
-		//console.log(args);
 		return setVarValue(args[0],getVarValue(args[0])+args[1]);
 	};
 	subtractVar(args){

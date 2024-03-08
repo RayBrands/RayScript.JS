@@ -1,349 +1,791 @@
-//Работа с переменными
+//TODO:Заменить стиль кода, сделать нормальный стиль кода
+
+const 
+	DEBUG = true;
+
+var
+	VariablesMap = new Map(),
+	ReturnValue = 0; //Кол-во return в функции (Для работы с return (return abc))
+	
+function setVarValue(Name, Value) {
+	VariablesMap.set(Name, Value);
+	return Value
+}
+
+function getVarValue(Name) {
+	return VariablesMap.get(Name) ?? 0
+}
+
+class BracketData {
+  constructor(Text = "", Args = [], Commands = [], Type = "", Func = "", ArgsType = [], Value = 0) {
+    this._Text = Text,
+    this._Args = Args,
+    this._Commands = Commands,
+    this._Type = Type,
+    this._Func = Func,
+    this._ArgsType = ArgsType,
+	  this._Value = Value;	
+  }
+  
+  // Геттеры
+  get Text() {
+    return this._Text
+  }
+
+  get Args() {
+    return this._Args
+  }
+
+  get Commands() {
+    return this._Commands
+  }
+
+  get Type() {
+    return this._Type
+  }
+
+  get Func() {
+    return this._Func
+  }
+
+  get ArgsType() {
+    return this._ArgsType
+  }
+  
+  get Value(){
+	return this._Value
+  }
+
+  // Сеттеры
+  setText(Text) {
+    this._Text = Text
+  }
+
+  setArgs(Args) {
+    this._Args = Args
+  }
+  
+  setCommands(Commands) {
+    this._Commands = Commands
+  }
+  
+  setType(Type) {
+    this._Type = Type
+  }
+
+  setFunc(Func) {
+    this._Func = Func
+  }
+
+  setArgsType(ArgsType) {
+    this._ArgsType = ArgsType
+  }
+  
+  setValue(Value){
+    this._Value = Value
+  }
+  
+  //add
+  addArg(Arg){
+    this._Args.push(Arg)
+  } 
+
+  addText(Text){
+    this._Text += Text
+  } 
+
+  addCommands(CommandsArray){
+	this._Commands.push(CommandsArray)
+  }  
+
+  // Деструкторы
+  deleteText() {
+    delete this._Text //= null
+  }
+
+  deleteArgs() {
+    delete this._Args //= null
+  }
+
+  deleteCommands() {
+    delete this._Commands //= null
+  }
+
+  deleteFunc() {
+    delete this._Func //= null
+  }
+
+  deleteArgsType() {
+    delete this._ArgsType //= null
+  }
+  
+  deleteValue(){
+    delete this._Value //= null
+  }
+}
+
 /*
+ Функция openAllBrackets
+ TODO: Поменять комментарии в функциях. Сделать работу с [массивами]. Сделать работу с массивом из команд (Type = "commandArray")
+ 
+ args:
+	Text -> текст кода RayScript
+	
+ functions:
+	main()
+	openCommandBracket(Text)
+	openTypeBrackets(Text, CharOpenBracket, CharClosedBracket)
+	сaseArgBracket()
+	caseCommandBracket()
+	getType()
+
+ return: 
+ 	object BracketData()
+		{
+		Type  			-> тип данных открытых скобок (funcCommands, func, str, float)
+		Text?  			-> текст строки/команды
+		Args?  			-> массив из аргументов
+		Commands? 	-> массив из массива команд
+		Value? 			-> float значение text
+		}
+
+	*Все переменные, не относящиеся к типу данных (Type) - удаляются 	
 
 */
-const variablesDict = {}; // Хранение переменных проекта в словаре (Почему нет)
+function openAllBrackets(Text) {
+  let 
+		Data = new BracketData(),
+		_Text = Text,
+		TypeBracket = {
+			"(": "arg",
+			"[": "array",
+			"{": "command",
+		};
+		//"\n": "newCommand"
+		//newCommandResult = [], //Array of command		
+		//isCommandsText = false,
 
-const variablesMap = new Map();
-function setVarValue(_name, _value) {
-  variablesMap.set(_name, _value);
-  return _value;
-}
-function getVarValue(_name) {
-  return variablesMap.get(_name) ?? 0;
-}
+  	main();
+  	return getType();
 
-var returnValue = 0; //Кол-во return в функции (Для работы с return (return abc))
+  //====
 
-/*
-    Функция принимает на вход строку, 
-	представляющую собой функцию со скобками (квадратными и круглыми), 
-	и разделяет ее на текст функции и аргументы.
+  function main(){
+    for (;((_Text).length>0);) {
+      let Char = _Text[0];
+      //debug? console.log(`text = ${text}`):"";
+      
+			switch (TypeBracket[Char] ?? "default") {
 
-    Args:
-        text: Строка, представляющая собой функцию со скобками.
+				case "arg":
+					_Text = _Text.slice(1);
+          caseArgBracket();
+          break;
+				
+				case "command":
+					_Text = _Text.slice(1);
+					caseCommandBracket();
+					break;
+				
+				case "array": //TODO: сделать работу с массивами
+					break;
+          
+        /*case "newCommand":
+          text = text.slice(1);
+          caseNewCommandChar();
+          break;*/
 
-    Returns:
-        result: Объект с двумя полями:
-			* text: Текст функции без скобок.
-			* args: Массив аргументов, которые находились внутри скобок + возможен массив из команд внутри {}
+				case "default":
+					Data.addText(Char);
+					_Text = _Text.slice(1);
+					break;
+			}
+
+    }
+
+	}
+
+	/*создаёт массив из комманд внутри {} скобок*/
+	function openCommandBracket(Text){
+		let 
+			Result = [],
+			_Text = Text,
+			BracketsCount = 0,
+			CommandText = "",
+			BracketCharDict = {
+				"{": 1,
+				"}": -1
+			};
 			
-	TODO: сделать квадратные скобки значением массива
-*/
-var argCharDict = {
-		"(": 1,
-		"[": 1,
-		")": -1,
-		"]": -1,
-};
+		function pushCommand(){
+			CommandText.trim().length>0?Result.push(CommandText):"";//проверка на пустое значение
+			CommandText=""
+		}
+		
+		for (;(_Text.length>0);) {
+			let Char = _Text[0];
+			
+			BracketsCount += BracketCharDict[Char] ?? 0;
 
-var commandCharDict = {
-		"{": 1,
-		"}": -1,
-};
-function hasNestedArray(arg) { //Проверка того, что в массиве нет массива
-  return arg instanceof Array;
-}	
-function openBrackets(_text) {
-	//console.log(`OpenBrackets text: ${_text}`);
-	//console.log("");
-	let result = {
-		text: "",
-		args: [],
-		type: "", //str(str,var,float),func,funcCommands
-	};
-
-	let argsBracketCount = 0; //Кол-во скобок для аргументов
-	let bracketArg = "";
-	let skipArgBracketSymbol=1;
-	let bracketCommand = "";
-	let commandBracketCount = 0;
-	let skipCommandBracketSymbol = 1;
-	let commandArray = [];
-	let firstBracketType = ""; //Определяет какой тип скобок появилась первой
+			if ((Char === "\n")&&(BracketsCount===0)){
+				pushCommand()
+			} else {
+				CommandText+=Char
+			}
+			_Text = _Text.slice(1)
+		}
+		
+		pushCommand();
+		
+		return Result
+	}
 	
-	for (let i = 0; i < _text.length; i++) {
-		const char = _text[i];
-		
-		argsBracketCount += argCharDict[char] ?? 0;
-		commandBracketCount += commandCharDict[char] ?? 0;
-		
-		//Позволяет сохранить другой тип скобок внутри других скобок
-		if ((argsBracketCount === 1)&&(commandBracketCount===0)){
-			firstBracketType = "args"
-		} else if ((argsBracketCount === 0)&&(commandBracketCount===1)){
-			firstBracketType = "command"
+	/*
+	раскрывает скобки (_charOpenBracket, _charClosedBracket), 
+	возвращает весь текст внутри скобок, иначе предупреждает о том, 
+	что текст не в скобках (предупреждение)
+	*/
+	function openTypeBrackets(Text, CharOpenBracket, CharClosedBracket){
+		let 
+			BracketCount = 1, 
+			ResultText = "",
+			ItText = false,
+			_Text=Text;
+			
+		const BracketCharDict = {
+			[CharOpenBracket]: 1,
+			[CharClosedBracket]: -1
 		}
 		
-		//TODO: сделать отдельные функции для конкретных операций
-		switch (firstBracketType) {
-			//Первая скобка - аргумента
-			case "args":
-				if (argsBracketCount >= 1) { 
-					if (skipArgBracketSymbol === 0) {
-						bracketArg += char;
-						//console.log(char);
-					} else { //первая скобка аргумента игнорируется
-						skipArgBracketSymbol = 0;
-					}
-				} else if (skipArgBracketSymbol === 0){ //последняя скобка аргумента
-					result.args.push(bracketArg);
-					//console.log(`Changed`);
-					//console.log(newResult);
-					bracketArg = "";
-					skipArgBracketSymbol = 1;
-					firstBracketType = "" 
-				}
-				break;
-			//Первая скобка - команд
-			case "command":
-				if (commandBracketCount >= 1){
-					if (skipCommandBracketSymbol === 0) {
-						if ((char === "\n")&&(commandBracketCount == 1)) {
-							//TODO: сделать проверку пустого значения
-							if (bracketCommand != ''){
-								commandArray.push(bracketCommand);
-							}
-							bracketCommand = "";
-						} else {
-							bracketCommand += char;
-							//console.log(char);
-						}
-					} else { //первая командная скобка игнорируется
-						skipCommandBracketSymbol = 0;
-					}
-				} else if (skipCommandBracketSymbol === 0) {
-					if (bracketCommand != ''){
-						commandArray.push(bracketCommand);
-					}
-					result.args.push(commandArray);
-					commandArray = [];
-					skipCommandBracketSymbol = 1;
-					firstBracketType = "";
-					bracketCommand = "";
-				}
-				break;
-			//Скобок нет
-			default:
-				result.text += char;
-		}
-	};
-	//console.log(result);
-	result.text.trim();
-	
-	//Проверка простых скобок без текста
-	//console.log(result.text.replace(/\s/g, ''));
-	if ((result.text.replace(/\s/g, '')=="")&&(result.args.length>=1)){ return openBrackets(result.args[0])};
-
-	if (result.args.length>=1) {
-		result.type = "func";
-		for (let argArray of result.args){
-			result.type = hasNestedArray(argArray)?"funcCommands":result.type;
+		for (;(BracketCount > 0)&&(_Text.length>0);){
+			let Char = _Text[0];
+			BracketCount += BracketCharDict[Char] ?? 0;
+			if (BracketCount===0) {break}
+			ResultText+=Char;
+			_Text = _Text.slice(1)
 		}
 		
-	} else {
-		if ((!isNaN(result.text))) {
-			result.type = "float";
-			result.text = parseFloat(result.text);
-		} else { //variablesMap.has(result.text)
-			result.type = "str"; //Сделать проверку на числа, и т.п. str,var,float
+		if (BracketCount >= 1) {
+			debug?  console.warn(`\n[Warning] In opening the brackets of the text: "${CharOpenBracket+Text}"\nThe number of open and closed brackets does not match, ignoring Char "${CharOpenBracket}"`) :"";
+			ItText = true
+		}
+		
+		return {
+			Text: ResultText, 
+			ItText: ItText
 		}
 	}
-	//console.log(result);
-	return result;
-};
-
-function openAllBrackets(_text){
-	//console.log(`openAllBrackets:`);
-	//console.log(_text);
-	let result = {
-		text: "",
-		args: [],
-		type: "", //str(str,var,float),func,funcCommands
-	};
-	result = openBrackets(_text.replace(/\t/g, "")); //Warning: Все штуки табуляции будут игнорироваться, в том числе и в аргументах
-	let newArgs = [];
-	result.args.forEach(arg => {
-		//console.log(`new args`);
-		//console.log(arg);
-		if (hasNestedArray(arg)){
-			let commandsArray = [];
-			//console.log("Commands");
-			arg.forEach(command => {
-				commandsArray.push(openAllBrackets(command));		
-			});
-			newArgs.push(commandsArray);
-		} else {
-			let openedBrackets = openAllBrackets(arg);
-			newArgs.push({
-				text: openedBrackets.text,
-				args: openedBrackets.args,
-				type: openedBrackets.type,
-			});
-		}
-		//console.log(arg); // 1, 2, 3
-	});
-	//console.log(`openBrackets result:`);
 	
-	//console.log(newArgs);
-	result.args = newArgs;
-	//console.log(result);
+	/*
+	вставить значение аргумента в массив аргументов result.args
+	*/
+	function caseArgBracket(){
+		let 
+			ArgResult =  openTypeBrackets(_Text,"(",")");
+		
+		if (ArgResult.ItText){
+			Data.addText("(")
+		} else {
+			let 
+				OpenedArg =  ArgResult.Text;
+
+			_Text = _Text.slice(OpenedArg.length+1);
+			Data.addArg(OpenedArg); //TODO: добавить условие для добавление аргумента (Проверка на пустое значение);
+		}
+	}
+	
+	/*
+	вставить значение массива команд в массив команд result.commands
+	*/
+	function caseCommandBracket(){
+		let 
+			CommandResult =  openTypeBrackets(_Text,"{","}");
+				
+		if (CommandResult.ItText){
+			Data.addText("{")
+		} else {
+			let CommandsArray = [];
+			
+			_Text = _Text.slice(CommandResult.Text.length+1);
+			let OpenedBrackets =  openCommandBracket(CommandResult.Text);
+			
+			for (let i = 0; i < OpenedBrackets.length; i++) {
+				let Command =  OpenedBrackets[i];
+				CommandsArray.push(Command)
+			}
+			Data.addCommands(CommandsArray)
+		}
+	}
+
+	/*
+	возвращает тип открытых скобок (funcCommands, func, str, float)
+	удаляет ненужные return значения (args, commands, text)
+	*/
+	function getType(){
+		
+		if (Data.Commands.length){
+			Data.setText(Data.Text.replace(/[\s\t\n]/g, "").toLowerCase());
+			Data.setType("funcCommands");
+			Data.setArgs(Data.Args.map ((element) => {
+					return openAllBrackets(element)
+			}));
+			Data.setCommands(Data.Commands.map (
+				(commandsArrayElement) => {
+					return commandsArrayElement.map(
+						(command) => {
+							return openAllBrackets(command)
+						})
+				}
+			))
+
+			Data.deleteValue();
+			Data.deleteArgsType();
+			
+			return Data
+		} 
+
+		else if (Data.Args.length){
+			Data.setText(Data.Text.replace(/[\s\t\n]/g, "").toLowerCase());		
+			Data.setArgsType(0);
+			Data.setType("func");
+			Data.setArgs(Data.Args.map ((element) => {
+					return openAllBrackets(element)
+			}))
+
+			Data.deleteCommands();
+			Data.deleteValue();
+			
+			return Data
+		}
+
+		Data.deleteCommands();
+		Data.deleteArgs();
+		Data.deleteArgsType();
+		Data.deleteFunc();
+		
+		function isNum(_str) {
+			return !isNaN(parseFloat(_str))
+		}
+		
+		if (isNum(Data.Text)){
+			Data.setValue(parseFloat(Data.Text));
+			Data.setType("float");
+			
+			Data.deleteText();
+
+			return Data
+		}
+		
+		Data.setText(Data.Text.trim());
+		Data.setType("str");
+		
+		return Data
+	}
+}
+
+
+/*Вызов функции с аргументами и командами*/
+/*!Code Style*/
+function callFunction(_func, _args, _commands, _type) {//TODO: Сделать описание и сделать проверку функций и аргументов, представленных внизу
+	//DEBUG? console.log(_func):"";
+	//DEBUG? console.log(_args,_commands,_type):"";
+	let 
+		result;
+	
+	if (_type==="func") {
+		callFunc()
+	} else {
+		DEBUG? !(_commands).length?console.warn(`\n[Warning] Функция ${_func} не имеет комманд в {commands}`):"":"";
+		result =  _func(...[_args],...[_commands])
+	}
+	
+	function callFunc(){
+		DEBUG?!(_args).length?console.warn(`\n[Warning] Функция ${_func} не имеет аргументов`):"":"";
+		
+		//console.log(_data.args);
+		getArgs();
+		
+		
+		
+		function getArgs(){
+			for (let i = 0; i < (_args).length; i++) {
+				_args[i] =  run(_args[i])
+			}
+			result = _func(...[_args])
+			//console.log(result);
+		}
+	}
+	
 	return result;
 }
 
-function returnReq(req) {return (req)?1:0}; //Нужно для численного значения булевого типа данных
+/*
+Parser должен по идее выдавать объект из команд, и какие значения ему нужно выдавать
+Создаёт массив внутренних событий, таких как "Запуск проекта", "нажатие клавиши", "При каждом кадре"...
+
+args: 
+	Data -> object BracketData() - Раскрытые скобки при помощи OpenAllBrackets()
+*/
+function parser(Data){
+
+	let
+		Result = Data;
+
+	switch (Data.Type?? "default") {	
+		case "func":
+			return  caseFunc()//TODO?
+			
+		case "funcCommands":
+			return  caseFuncCommands()//TODO?
+			
+		case "commandsList":
+			return  caseCommandsList() //TODO?
+	}
+	
+	return Result;
+	
+	function caseFunc(){ //func() , ()func(), ()big()func()
+		let 
+			Command = Ext.Commands.get(Result.Text);
+			
+		if (Command??false){
+			Result.setFunc(("function ") + (Command.Func.toString().replace(/[\t\n]/g, "")));
+			Result.setArgsType(Command.ArgsType)
+		}
+		
+		parseArgs();
+		checkCustomBlocks();
+		
+		function parseArgs(){
+			let
+				ArgArray = Result.Args;
+
+			for (let i = 0; i < ArgArray.length; i++) {
+				ArgArray[i] = parser(ArgArray[i])
+			}
+			if (Result.ArgsType??false){
+				ArgArray[0].setArgsType(Result.ArgsType[0])
+			}
+
+			Result.Args = ArgArray;
+		}
+		
+		function checkCustomBlocks(){
+			if (!Result.Func){
+				Result.Func = Result.Text;
+				Result.Type = "customBlock";
+				Result.deleteArgsType;
+			}
+			/*
+			TODO: (Parser, Func)
+			Создать проверку в Parser после обработки всех функций, что кастомный блок func(){} есть в системе (Сделать возможность загрузить из сервера (планы))
+			*/
+			//debug? console.log({args:funcData.args,type:_data.type}):"";
+		}
+		
+		return Result
+	}
+	
+	function caseFuncCommands(){	
+
+		parseArgs();
+		parseCommandsArray();
+		checkCustomBlocks();
+
+		return Result;
+		
+		/*===*/
+		
+		function parseArgs(){
+			let
+				ArgArray = Result.Args;
+
+			for (let i = 0; i < ArgArray.length; i++) {
+				ArgArray[i] = parser(ArgArray[i])
+			}
+		}
+
+		function parseCommandsArray(){
+			for (let i = 0; i < (Result.Commands).length; i++){
+				for (let j = 0; j < ((Result.Commands[i]).length); j++) {
+					Result.Commands[i][j] = parser(Result.Commands[i][j])
+				}
+			}
+		}
+		
+		function checkCustomBlocks(){
+			let
+				Command =  Ext.Commands.get(Result.Text);
+			
+			if (Command?false:true){
+				if (Result.Args.length<1){
+					DEBUG? console.warn(`\n[Warning] Custom block ${Result.Text}{} have no args :P`):"";
+				}
+
+				Result.setType("customBlockCommands");
+				Result.setFunc(Result.Text)
+				/*
+				TODO:(Parser, FuncCommands)
+				Сделать здесь регистрацию кастомных блоков 
+				(Использование локальных переменных, 
+				запись команд блока в отдельный map, 
+				использование в customBlock, 
+				выполнить проверку внутри блока на кол-во аргументов и т.п.)
+				*/
+			} else {
+				//DEBUG? console.warn(Result):"";
+				Result.setFunc(("function ") + ((Command.Func).toString().replace(/[\t\n]/g, "")))
+			}
+		}
+
+	}
+	
+	 function caseCommandsList(){
+		/*
+		TODO:(Parser, commandsList)
+		Сделать обработку событий (старт, каждый кадр, нажатие клавиши, нажатие мышки и тп.)
+		*/
+		return Result
+	}
+	
+}
+
+/*
+Функция run(_data)
+Запускает func, funcCommands, commandsArray, либо начальную функцию Main если она есть (TODO?)
+Также выполняет вывод значений float, str(varValue(если args_type != varStr, и var есть в наличии :D ),str)
+
+Args:
+	_data	-> Обработанные данные со всеми func,type внутри
+	
+Return:
+	Выполненный код, вывод результата
+*/
+/*!Code Style*/
+function run(Data){
+	//console.log("run gave _data");
+
+	let
+		Result = Data;
+
+	//console.warn(Result);
+	
+	//TODO: убрать комментарии с Parser после написания этого блока
+	switch (Result._Type?? "default") {	
+		
+		case "func":
+			return  caseFunc()
+			
+		case "funcCommands":
+			return  caseFuncCommands()
+			
+		case "commandsList":
+			break //return caseCommandsList() */
+		
+		case "float":
+			return  caseFloat()
+			
+		case "str":
+			return  caseStr()
+	}	
+	
+	return Result;
+	
+	function caseFunc(){
+		let
+			Args = [];
+			
+		getArgs();
+		//console.log(Args)
+
+		let runner = {
+			args: [],
+			type:Result._Type
+		}
+		//console.log(`caseFunc have:`)
+		//console.log(Result);
+		runner['args']=Args;
+
+		//console.log(runner)
+
+		return callFunction(
+			_func = eval(`(${Result._Func})`),
+			_args = runner.args, _commands = [], _type=Result._Type
+		);
+		
+		function getArgs(){
+			for (let i = 0; i < Data._Args.length; i++) {
+				Args.push(run(Data._Args[i]));
+			}
+		}
+		
+	}
+	
+	function caseFuncCommands(){
+		let
+			Args = Result._Args,
+			Commands =Result._Commands;
+
+		//console.log(Commands);
+			
+		return callFunction(
+			eval(`(${Result._Func})`),
+			_args = Args, _commands = Commands, _type = Result._Type
+		)
+	}
+	
+	function caseStr(){
+		if (Result._ArgsType??false){
+			//console.log(`getting varSTR`);
+			if (isVar(Result._ArgsType==="varStr")){
+				return getVarValue(Result.Text)
+			}
+		} else if (isVar()) {
+			return getVarValue(Result._Text)
+		}
+		//console.log(Result._Text || 0);
+		return Result._Text || 0;
+		
+		function isVar(notGetValue = false){
+			return notGetValue?false:VariablesMap.has(Result._Text)?true:false
+		}
+	}
+	
+	function caseFloat(){
+		//console.log(Result._Value);
+		return Result._Value;
+	}
+}
+
+/*!Code Style*/
+ function startCommandsFromArray(_commands, _commandReturnValue) {
+	//console.log(_commands);
+  try {
+    let result;
+
+    for (let i = 0; i < _commands.length; i++) {
+      result =  run(_commands[i]);
+			//console.log(result);
+
+      if (returnValue !== _commandReturnValue) {
+        return  result;
+      }
+    }
+
+    return  result;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
 
 /*
  Класс extensions
+ //TODO: Сделать проверку кол-ва аргументов,  ??задать тип данных для работы с блоками
+
  Принимает модуль, добавляет команды в commands
  Добавляет значения блоков в blocks (Распределяя по классам)
  modules содержит все подключённые модули а также их описание, color и ссылка на документацию
 */
-//TODO: Сделать проверку кол-ва аргументов,  ??задать тип данных для работы с блоками
-class extensions {
+class Extensions {
   constructor() {
-    this.commands = new Map();
-    this.blocks = new Map();
-    this.modules = new Map();
+    this.Commands = new Map();
+    this.Blocks = new Map();
+    this.Modules = new Map();
   }
+  
+  register(Clazz) { //Регистрация нового модуля
+		if (isNotClassValid(Clazz)) {
+			throw new Error('Invalid class: ' + Clazz.name);
+		}
+		const Info = Clazz.prototype.getInfo();
+		const ModuleInfo = {
+				Name: Info.name,
+				Color: Info.color, // pure red
+				DocsURI: Info.docsURI, //Документация к модулю
+				Description: Info.description //краткое описание модуля
+		}
+		this.Modules.set(Info.id, ModuleInfo);
 
-  register(clazz) { //Регистрация нового модуля
-    if (isNotClassValid(clazz)) {
-      throw new Error('Invalid class: ' + clazz.name);
-    }
-    const info = clazz.prototype.getInfo();
-    const moduleInfo = {
-        name: info.name,
-        color: info.color, // pure red
-        docsURI: info.docsURI, //Документация к модулю
-		description: info.description //краткое описание модуля
-    }
-    this.modules.set(info.id, moduleInfo);
+		// Registration code remains the same
+		// Регистрация блоков
+		for (const Block of Info.blocks) {
+			//Регистрация команд
+			//debug? console.log(openAllBrackets(key)):"";
+			const Key = Block.text; // Ключ без пробелов
+			let OpenedBrackets = openAllBrackets(Key);
+			this.Commands.set(OpenedBrackets.Text, {
 
-    // Registration code remains the same
-    // Регистрация блоков
-      for (const block of info.blocks) {
-        //Регистрация команд
-        const key = block.text.replace(/\s/g, ''); // Ключ без пробелов
-		
-        this.commands.set(openBrackets(key).text.toLowerCase(), {
-          id: info.id,
-          opcode: block.opcode,
-		  type: openBrackets(key).type,
-          args: block.args,
-		  notVarValue: block.notVarValue,
-		  func: clazz.prototype[block.opcode]  //возможно стоит изменить это
-        });
-        //Регистрация блоков
-        const blocksForClass = this.blocks.get(info.id) || {};
-        blocksForClass[block.text] = {
-          type: block.type,
-          description: block.description,
-          args: block.args
-        };
-        this.blocks.set(info.id, blocksForClass);
-      }
-      return this;
+				ArgsType: Block.args_type,
+				NotVarValue: Block.notVarValue,
+				Func: Clazz.prototype[Block.opcode]  //возможно стоит изменить это
+				
+				//id: info.id,
+				//opcode: block.opcode,
+				//type: openBrackets(key).type,
+			});
+			//Регистрация блоков
+			const BlocksForClass = this.Blocks.get(Info.id) || {};
+			BlocksForClass[Block.text] = {
+				Type: Block.type,
+				Description: Block.description,
+				Args: Block.args
+			};
+			this.Blocks.set(Info.id, BlocksForClass);
+		}
+		return this;
+
+		function isNotClassValid(Clazz) {
+			return !(Clazz.prototype && Clazz.prototype.getInfo && typeof Clazz.prototype.getInfo === 'function');
+		}
   }
 }
-var ext = new extensions(); //Инициализация дополнений
 
-function newParser(_openedBrackets,_notVarValue=false){
+const submitButton = document.getElementById('submitButton');
+const startButton = document.getElementById('startButton');
+const editTextElement = document.querySelector('textarea');
+const outputElement = document.getElementById('output');
+
+var parseredBrackets = "";
+let openedBrackets;
+submitButton.addEventListener('click',  function() { 
+	const startTime = Date.now();
+	returnValue = 0;
+	openedBrackets = openAllBrackets(editTextElement.value);
+	console.log(openedBrackets);
+	parseredBrackets = JSON.parse(JSON.stringify(parser(openedBrackets)));
+	console.log(parseredBrackets);
 	
-	let funcVar,bracketsArgs;
-	console.log("NewParser have _openedBrackets:");
-	console.log(_openedBrackets);
-	switch (_openedBrackets.type) {
-		case "str":
-			//console.log(_notVarValue);
-			if (variablesMap.has(_openedBrackets.text)){
-				return !_notVarValue?getVarValue(_openedBrackets.text.replace(/ /g, "")):(_openedBrackets.text || "0");
-			} else {
-				return _openedBrackets.text || "0";
-			}
-		case "float":
-			return _openedBrackets.text
-		case "func":
-			funcVar = ext.commands.get(_openedBrackets.text.replace(/ /g, "").toLowerCase());
-			//console.log(funcVar);
-			bracketsArgs = _openedBrackets.args;
-			let changeNotVarValue = funcVar.notVarValue;
-			bracketsArgs[0] = newParser(bracketsArgs[0],changeNotVarValue===true?true:changeNotVarValue);
-			for (let i = 1; i < bracketsArgs.length; i++) {
-				bracketsArgs[i] = newParser(bracketsArgs[i]);
-			}
-			//console.log(bracketsArgs);
-			return callFunction(funcVar.func,bracketsArgs);
-		case "funcCommands":
-			funcVar = ext.commands.get(_openedBrackets.text.replace(/ /g, "").toLowerCase());
-			
-			bracketsArgs = _openedBrackets.args;
-			//console.log(bracketsArgs);
-			
-			let result = callFunction(funcVar.func,bracketsArgs);
-			//console.log(result);
-			return result;
-	};
-	return _openedBrackets;
-	//return _openedBrackets.text || "0";
-}
-
-
-function callFunction(text, ...args) { 
-	//TODO: Сделать описание и сделать проверку функций и аргументов, представленных внизу
-	const result = text(...args);
-	return result;
-}
-	//let func = {
-	//	id: text.id,
-	//	opcode: text.opcode,
-	//	args: text.args
-	//}
-	/*// Проверка, является ли text строкой
-	if (typeof text !== 'string') {
-		throw new TypeError('text должен быть строкой');
+	//parseredBrackets =  JSON.stringify(parser(dictOpenedBrackets));
+	//console.log(JSON.parse(parseredBrackets));
+});
+startButton.addEventListener('click',  function() { 
+	const startTime = Date.now();
+	const newVar = parseredBrackets;
+	returnValue = 0;
+	function start(_data){
+		let runned =  run( _data);
+		return runned
+		//console.log(_data);
+		//console.log(runned);
 	}
-	// Проверка, является ли args массивом
-	if (!Array.isArray(args)) {
-		throw new TypeError('args должен быть массивом');
-	}*/
-
-	//const clazz = ext.modules.get(func.id).clazz; // Получить класс по имени
-	//const instance = new clazz(); // Создать экземпляр класса
+	console.log(newVar);
+	const result2 = start(newVar);
 	
+	const endTime = Date.now();
+	const executionTime = endTime - startTime;
+	myFunction(`${result2 + '\nRunning Time: ' + executionTime}`);
+});
 
-	// Получение функции из объекта window
-	//const func = window[text];
-
-	/*// Проверка, является ли func функцией
-	if (typeof func !== 'function') {
-		throw new TypeError(`Функция ${text} не найдена`);
-	}*/
-
-	// Вызов функции с аргументами
-	
-//}
-
-function isNotClassValid(clazz) {
-  return !(clazz.prototype && clazz.prototype.getInfo && typeof clazz.prototype.getInfo === 'function');
+//Вывод значения в "output"
+function myFunction(text) {
+    // Ваш код, использующий текст из editText
+    outputElement.innerHTML = 'Program returned: ' + text;
 }
 
-function startNewCommandsArray(_commandsArray,_commandReturnValue){
-	//console.log( _commandsArray);
-	
-	let result = newParser(_commandsArray[0]);
-	//console.log("startCommand. result=" + result);
-	//console.log( _commandsArray);
-	if (returnValue!=_commandReturnValue){
-		return result;
-	} else if (_commandsArray.length>1) {
-		return startNewCommandsArray(_commandsArray.slice(1),_commandReturnValue);
-	} else {
-		return result;
-	}
-}
+/*Start Modules*/
+var Ext =  new Extensions(); //Инициализация дополнений
 
-/*Start Base Modules*/
 class baseModule{
 	getInfo() {
 		return {
@@ -513,9 +955,9 @@ class baseModule{
 					text: '( ) identical ( )',opcode: 'Equal',description: '(a) равно (b)?'
 				},
 				{
-					text: '( ) is var',opcode: 'isVar',notVarValue: true,description: '(a) является переменной?'
+					text: '( ) is var',opcode: 'isVar',notVarValue: true,description: '(a) является переменной?',
+					args_type: ["varStr"],
 				},
-				
 				/*
 					Работа со строками
 				*/
@@ -564,36 +1006,42 @@ class baseModule{
 					opcode: 'setVar',
 					notVarValue: true,
 					description: 'Задать значение для переменной',
+					args_type: ["varStr"]
 				},
 				{
 					text: '()+=()',
 					opcode: 'summVar',
 					notVarValue: true,
 					description: 'Добавить значение для переменной',
+					args_type: ["varStr"]
 				},
 				{
 					text: '()-=()',
 					opcode: 'subtractVar',
 					notVarValue: true,
 					description: 'Убавить значение для переменной',
+					args_type: ["varStr"]
 				},
 				{
 					text: '()*=()',
 					opcode: 'multiplyVar',
 					notVarValue: true,
 					description: 'Умножить значение для переменной',
+					args_type: ["varStr"]
 				},
 				{
 					text: '()/=()',
 					opcode: 'divideVar',
 					notVarValue: true,
 					description: 'Разделить значение для переменной',
+					args_type: ["varStr"]
 				},
 				{
 					text: '()^=()',
 					opcode: 'powerVar',
 					notVarValue: true,
 					description: 'Разделить значение для переменной',
+					args_type: ["varStr"]
 				},
 			]
 		}
@@ -607,25 +1055,36 @@ class baseModule{
 	
 	//TODO: добавить return
 	returnFunc(args){
+			/*console.log("return runned");*/
 		returnValue++;
 		return args[0];
-	};
-	rys(args){	
-		let result;
-		let commandReturnValue = returnValue;
-		let commandsArray = args[0];
-		return startNewCommandsArray(commandsArray,commandReturnValue);
-	};
-	repeatFunc(args){
-		//console.log (`repeat args: `);
-		//console.log (args);
-		let repeatNum = newParser(args[0]);
-		let result;
-		let commandReturnValue = returnValue;
-		let commandsArray = (args[1]);
+	}
+		rys(_args, _commands) {
+		try {
+		let commandReturnValue = returnValue, command = _commands[0];
+		
+		const result =  startCommandsFromArray(command, commandReturnValue);
+		
+		return result;
+		} catch (error) {
+		console.error(error);
+		throw error;
+		}
+	}
+		repeatFunc(_args,_commands){
+		const 
+			arg = _args[0],
+			command = _commands[0];
+		let 
+			repeatNum =  run(arg),
+			result,
+			commandReturnValue = returnValue,
+			commandsArray = (command);
+
+			/*console.log(commandsArray);*/
+
 		for (let i = 0; i < repeatNum; i++){
-			result = startNewCommandsArray(commandsArray,commandReturnValue);
-			//console.log(commandsArray);
+			result =  startCommandsFromArray(commandsArray,commandReturnValue);
 			if (returnValue!=commandReturnValue) {
 				returnValue--;
 				break;
@@ -633,31 +1092,35 @@ class baseModule{
 		};
 		return result;
 	}
-	ifFunc(args){
-		//console.log(args);
-		if (	(args[0])===1) {
-			let result;
-			let commandsArray = args[1];
+		ifFunc(args,commands){
+		const 
+			arg = args[0],
+			command = commands[0];
+
+		if ( run(arg)!=0){
 			let commandReturnValue = returnValue;
-			return startNewCommandsArray(commandsArray,commandReturnValue);
+			return  startCommandsFromArray(command,returnValue)
 		}
+		
+		return 0
 	};
-	ifElseFunc(args){
+		ifElseFunc(args, commands){
 		let result;
 		let commandReturnValue = returnValue;
 		let commandsArray
-		if (newParser(args[0])===1) {
-			commandsArray = args[1];
+		if ( run(args[0])!=0) {
+			commandsArray = commands[0];
 		} else {
-			commandsArray = args[2];
+			commandsArray = commands[1];
 		}	
-		return startNewCommandsArray(commandsArray,commandReturnValue);
+		return  startCommandsFromArray(commandsArray,commandReturnValue);
 	};
 	
 	/*
 		Математические выражения
 	*/
 	add(args) {
+		/*console.log(args);*/
 		return args[0] + args[1];
 	};
 	subtract(args) {
@@ -673,7 +1136,7 @@ class baseModule{
 		return args[0] / args[1];
 	};
 	power(args){
-        return args[0] ** args[1];
+		return args[0] ** args[1];
 	};
 	//Более сложные
 	round(args) {
@@ -718,8 +1181,8 @@ class baseModule{
 	log10(args) {
 		return Math.log10(args[0]);
 	};
-	random(args) { //TODO!: Сделать округление до целого числа
-		return Math.random() * (args[0] - 0) + 0; // Генерация случайного числа от 0 до args[0]
+	random(args) { /*TODO!: Сделать округление до целого числа*/
+		return Math.random() * (args[0] - 0) + 0; /*Генерация случайного числа от 0 до args[0]*/
 	};
 	trunc(args) {
 		return Math.trunc(args[0]);
@@ -772,26 +1235,26 @@ class baseModule{
 
 	nand_block(args) {
 		return (!(cast.toBoolean(args[0]) && cast.toBoolean(args[1]))?1:0);
-    };
+	};
 
 	nor_block(args) {
 		return (!(cast.toBoolean(args[0]) || cast.toBoolean(args[1]))?1:0);
-    };
+	};
 
-    xor_block(args) {
+	xor_block(args) {
 		return (cast.toBoolean(args[0]) !== cast.toBoolean(args[1])?1:0);
-    };
+	};
 
-    xnor_block(args) {
+	xnor_block(args) {
 		return (cast.toBoolean(args[0]) === cast.toBoolean(args[1])?1:0);
-    };
+	};
 	containsSubstring(args) {
-        return (args[0]).toString().includes(args[1].toString()) ? 1 : 0;
-    };
+		return (args[0]).toString().includes(args[1].toString()) ? 1 : 0;
+	};
 	isVar(args){
-		//console.log(args);
+		/*//console.log(args);
 		//console.log (variablesDict);
-		//console.log (args[0]);
+		//console.log (args[0]);*/
 		return (variablesMap.has(args[0])?1:0);
 	};
 
@@ -801,48 +1264,48 @@ class baseModule{
 		Работа со строками
 	*/
 	joinStrings(args) {
-        return args[0].toString() + args[1].toString();
-    };
+		return args[0].toString() + args[1].toString();
+	};
 	length(args) {
-		return String(args[0]).length; // Преобразует в строку и возвращает длину
+		return String(args[0]).length; /*// Преобразует в строку и возвращает длину*/
 	};
 	convertToLowercase(args) {
-        return args[0].toString().toLowerCase();
-    };
-    convertToUppercase(args) {
-        return args[0].toString().toUpperCase();
-    };
+		return args[0].toString().toLowerCase();
+	};
+	convertToUppercase(args) {
+		return args[0].toString().toUpperCase();
+	};
 	getCharacterAtIndex(args) {
-        if (args[0] < 0 || args[0] >= args[1].toString().length) {
-            throw new Error("Index out of bounds");
-        }
-        return args[1].toString().charAt(args[0]);
-    };
+		if (args[0] < 0 || args[0] >= args[1].toString().length) {
+			throw new Error("Index out of bounds");
+		}
+		return args[1].toString().charAt(args[0]);
+	};
 	getSubstringFromRange(args) {
-        if (args[0] < 0 || args[1] >= args[2].length || args[0] > args[1] ) {
-            throw new Error("Invalid range");
-        }
-        return args[2].substring(args[0], args[1] + 1);
-    };
+		if (args[0] < 0 || args[1] >= args[2].length || args[0] > args[1] ) {
+			throw new Error("Invalid range");
+		}
+		return args[2].substring(args[0], args[1] + 1);
+	};
 	getItemFromSplit(args) {
-        const parts = args[2].split(args[1]);
-        if (args[0] < 0 || args[0] >= parts.length) {
-            throw new Error("Index out of bounds");
-        }
-        return parts[args[0]];
-    };
+		const parts = args[2].split(args[1]);
+		if (args[0] < 0 || args[0] >= parts.length) {
+			throw new Error("Index out of bounds");
+		}
+		return parts[args[0]];
+	};
 	replaceSubstring(args) {
-        return args[2].split(args[0]).join(args[1]);
-    };
+		return args[2].split(args[0]).join(args[1]);
+	};
 	countSubstrings(args) {
-        if (!args[0]) {
-            throw new Error("Empty substring provided");
-        }
-        return args[1].toString().split(args[0].toString()).length - 1;
-    };
-    indexOfSubstring(args) {
-        return args[1].toString().indexOf(args[0].toString());
-    };
+		if (!args[0]) {
+			throw new Error("Empty substring provided");
+		}
+		return args[1].toString().split(args[0].toString()).length - 1;
+	};
+	indexOfSubstring(args) {
+		return args[1].toString().indexOf(args[0].toString());
+	};
 
 	/*
 		Работа с переменными
@@ -854,7 +1317,6 @@ class baseModule{
 		return setVarValue(args[0],args[1]);
 	};
 	summVar(args){
-		//console.log(args);
 		return setVarValue(args[0],getVarValue(args[0])+args[1]);
 	};
 	subtractVar(args){
@@ -870,283 +1332,5 @@ class baseModule{
 		return setVarValue(args[0],getVarValue(args[0])**args[1]);
 	};
 }
-ext.register(baseModule);
-
-/*
-class PenModule {
-    constructor(canvasId, radiusColorDict = null) {
-      this.canvas = document.getElementById(canvasId);
-      this.ctx = this.canvas.getContext('2d');
-      this.setRadiusColorDict(radiusColorDict);
-    }
-  
-    setRadiusColorDict(radiusColorDict) {
-        const defaultRadiusColorDict = [
-          ['radius', 20],
-          ['colorFill', 'red'],
-          ['colorOutline', 'black'],
-          ['widthOutline', 6]
-        ];
-      
-        this.radiusColorMap = new Map(defaultRadiusColorDict);
-      
-        if (radiusColorDict) {
-          for (const [key, value] of radiusColorDict) {
-            this.radiusColorMap.set(key, value);
-          }
-        }
-      
-        // If any key is missing from radiusColorDict, set its default value
-        for (const [key, value] of defaultRadiusColorDict) {
-          if (!this.radiusColorMap.has(key)) {
-            this.radiusColorMap.set(key, value);
-          }
-        }
-    }
-  
-    applyDefaultCanvasSize() {
-      this.canvas.width = window.innerWidth;
-      this.canvas.height = window.innerHeight;
-    }
-
-    createCanvas(width = window.innerWidth, height = window.innerHeight) {
-      this.canvas = document.createElement('canvas');
-      this.canvas.width = width;
-      this.canvas.height = height;
-      document.body.appendChild(this.canvas);
-    }
-  
-    deleteCanvas() {
-      if (this.canvas && this.canvas.parentNode) {
-        this.canvas.parentNode.removeChild(this.canvas);
-      }
-    }
-  
-    clearCanvas() {
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    }
-  
-    drawShape(shapeFunction, x, y, fill = false, outline = true) {
-      this.applyDefaultCanvasSize();
-      const radius = this.radiusColorMap.get('radius');
-      const colorFill = this.radiusColorMap.get('colorFill');
-      const colorOutline = this.radiusColorMap.get('colorOutline');
-      const widthOutline = this.radiusColorMap.get('widthOutline');
-  
-      this.ctx.save();
-      this.ctx.beginPath();
-      shapeFunction.call(this, x, y, radius);
-      if (fill && !outline) {
-        this.ctx.fillStyle = colorFill;
-        this.ctx.fill();
-      } else if (!fill && outline){
-        this.ctx.lineWidth = widthOutline;
-        this.ctx.strokeStyle = colorOutline;
-        this.ctx.stroke();
-      } else {
-        this.ctx.fillStyle = colorFill;
-        this.ctx.lineWidth = widthOutline;
-        this.ctx.strokeStyle = colorOutline;
-        this.ctx.fill();
-        this.ctx.stroke();
-      }
-      this.ctx.restore();
-    }
-  
-    drawPoint(pointX, pointY) {
-      this.drawShape(this.drawArc, pointX, pointY, true, false);
-    }
-  
-    drawCircle(circleX, circleY, fill = false) {
-      this.drawShape(this.drawArc, circleX, circleY, fill);
-    }
-  
-    drawSemiCircle(semiCircleX, semiCircleY, fill = false) {
-      this.drawShape(this.drawSemiArc, semiCircleX, semiCircleY, fill);
-    }
-  
-    drawLine(startX, startY, endX, endY) {
-      this.applyDefaultCanvasSize();
-      const color = this.radiusColorMap.get('colorFill');
-      const widthOutline = this.radiusColorMap.get('widthOutline');
-      const centerStartX = startX + this.canvas.width / 2;
-      const centerStartY = startY + this.canvas.height / 2;
-      const centerEndX = endX + this.canvas.width / 2;
-      const centerEndY = -1 * endY + this.canvas.height / 2;
-  
-      this.ctx.save();
-      this.ctx.beginPath();
-      this.ctx.moveTo(centerStartX, centerStartY);
-      this.ctx.lineTo(centerEndX, centerEndY);
-      this.ctx.lineWidth = widthOutline;
-      this.ctx.strokeStyle = color;
-      this.ctx.stroke();
-      this.ctx.restore();
-    }
-  
-    drawSquare(squareX, squareY, size = 100, fill = false) {
-      this.applyDefaultCanvasSize();
-      const centerX = squareX + this.canvas.width / 2 + size / 2 * -1;
-      const centerY = squareY + this.canvas.height / 2 + size / 2 * -1;
-      const color = fill ? this.radiusColorMap.get('colorFill') : this.radiusColorMap.get('colorOutline');
-  
-      this.ctx.save();
-      this.ctx.beginPath();
-      if (fill) {
-        this.ctx.fillStyle = color;
-        this.ctx.fillRect(centerX, centerY, size, size);
-      } else {
-        this.ctx.strokeStyle = color;
-        this.ctx.strokeRect(centerX, centerY, size, size);
-      }
-      this.ctx.restore();
-    }
-  
-    drawArc(x, y, radius) {
-      const centerX = x + this.canvas.width / 2;
-      const centerY = y + this.canvas.height / 2;
-      this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
-    }
-  
-    drawSemiArc(x, y, radius) {
-      const centerX = x + this.canvas.width / 2;
-      const centerY = y + this.canvas.height / 2;
-      this.ctx.arc(centerX, centerY, radius, 0, Math.PI, false);
-    }
-    
-    getInfo() {
-        return {
-          id: 'PenModule',
-          name: 'Pen Module',
-          description: 'Provides methods to draw shapes on canvas.',
-          blocks: [
-            {
-              text: 'Draw Point at x: [ ] y: [ ]',
-              opcode: 'drawPoint',
-              description: 'Draws a point on the canvas.'
-            },
-            {
-              text: 'Draw Circle at x: [ ] y: [ ]',
-              opcode: 'drawCircle',
-              description: 'Draws a circle on the canvas.'
-            },
-            {
-              text: 'Draw Semi-Circle at x: [ ] y: [ ]',
-              opcode: 'drawSemiCircle',
-              description: 'Draws a semi-circle on the canvas.'
-            },
-            {
-              text: 'Draw Line from (x1: [ ] y1: [ ]) to (x2: [ ] y2: [ ])',
-              opcode: 'drawLine',
-              description: 'Draws a line on the canvas.'
-            },
-            {
-              text: 'Draw Square at x: [ ] y: [ ] size: [ ]',
-              opcode: 'drawSquare',
-              description: 'Draws a square on the canvas.'
-            },
-            {
-              text: 'Create Canvas with width: [ ] height: [ ]',
-              opcode: 'createCanvas',
-              description: 'Creates a new canvas with specified width and height.'
-            },
-            {
-              text: 'Delete Canvas',
-              opcode: 'deleteCanvas',
-              description: 'Deletes the canvas from the DOM.'
-            },
-            {
-              text: 'Clear Canvas',
-              opcode: 'clearCanvas',
-              description: 'Clears all drawings on the canvas.'
-            }
-          ]
-        };
-    }    
-  }
-ext.register(PenModule);*/
-
-/*End Modules*/	
-
-//const editTextElement = document.getElementById('editText');
-const submitButton = document.getElementById('submitButton');
-const outputElement = document.getElementById('output');
-const editTextElement = document.querySelector('textarea');
-/*console.log(openAllBrackets(`repeat(100){
-(var)+=(1)
-if ((var)>(10)){
-return(var)
-}
-}`));*/
-var keys = new Map();
-//document.body.innerHTML = "Keys currently pressed: "
-/*window.addEventListener("keydown",
-    function(e){
-        keys.set(e.keyCode,e.key);
-        var keysArray = getNumberArray(keys);
-        //document.body.innerHTML = "Keys currently pressed:" + keysArray;keysArray;
-		//console.log(keys);
-		keys.delete(e.keyCode);
-        
-		
-        if(keysArray.toString() == "17,65"){
-            document.body.innerHTML += " Select all!"
-        }
-		
-    },
-false);*/
-
-
-/*window.addEventListener('keyup',
-    function(e){
-        keys.delete(e.keyCode);
-        //document.body.innerHTML = "Keys currently pressed: " + getNumberArray(keys);
-    },
-false);
-
-
-function getNumberArray(arr){
-    var newArr = new Array();
-    for(var i = 0; i < arr.length; i++){
-        if(typeof arr[i] == "number"){
-            newArr[newArr.length] = arr[i];
-        }
-    }
-    return newArr;
-}*/
-
-//При нажатии кнопки "submitButton"
-submitButton.addEventListener('click', function() { 
-	const startTime = Date.now();
-	//const processedText = value
-	let testBrackets = openAllBrackets(`repeat(100){
-(var)+=(1)
-if ((var)>(10)){
-return(var)
-}
-}`);
-	let openedBrackets = openAllBrackets(editTextElement.value);
-	console.log(openedBrackets);
-	console.log(newParser(testBrackets));
-	
-	/*const editTextValue = (editTextElement.value).replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
-	// Пример использования
-	//let textVar = openBrackets(editTextElement.value).text;
-	//let args = openBrackets(editTextElement.value).args;
-	console.log(editTextValue);
-	let openedBracket = openAllBrackets(`${editTextElement.value}`);
-	console.log(openedBracket);
-	console.log("Вызов Parser\n");
-	const result2 = newParser(openedBracket);//parser(editTextElement.value);
-	
-	const endTime = Date.now();
-	const executionTime = endTime - startTime;
-	myFunction(`${result2}\n\nRunning Time: ${executionTime}`);*/
-});
-
-
-//Вывод значения в "output"
-function myFunction(text) {
-    // Ваш код, использующий текст из editText
-    outputElement.innerHTML = 'Program returned: ' + text  ;
-}
+Ext =  Ext.register(baseModule);
+/*End Modules*/
