@@ -370,6 +370,8 @@ function openAllBrackets(Text) {
 	удаляет ненужные return значения (args, commands, text)
 	*/
 	function getType(){
+
+		Data.deleteFunc(); //Убираем из данных Func
 		
 		if (Data.Commands.length){
 			Data.setText(Data.Text.replace(/[\s\t\n]/g, "").toLowerCase());
@@ -409,7 +411,7 @@ function openAllBrackets(Text) {
 		Data.deleteCommands();
 		Data.deleteArgs();
 		Data.deleteArgsType();
-		Data.deleteFunc();
+		
 		
 		function isNum(_str) {
 			return !isNaN(parseFloat(_str))
@@ -438,31 +440,45 @@ function callFunction(_func, _args, _commands, _type) {//TODO: Сделать о
 	//DEBUG? console.log(_func):"";
 	//DEBUG? console.log(_args,_commands,_type):"";
 	let 
-		result;
+		result = 0,
+		Command = Ext.Commands.get(_func),
+		Func;
 	
-	if (_type==="func") {
-		callFunc()
-	} else {
-		DEBUG? !(_commands).length?console.warn(`\n[Warning] Функция ${_func} не имеет комманд в {commands}`):"":"";
-		result =  _func(...[_args],...[_commands])
-	}
-	
-	function callFunc(){
-		DEBUG?!(_args).length?console.warn(`\n[Warning] Функция ${_func} не имеет аргументов`):"":"";
-		
-		//console.log(_data.args);
-		getArgs();
-		
-		
-		
-		function getArgs(){
-			for (let i = 0; i < (_args).length; i++) {
-				_args[i] =  run(_args[i])
-			}
-			result = _func(...[_args])
-			//console.log(result);
+	//console.log(Command, _args, _commands, _type, _func);
+
+	if (Command??false){
+		Func = Command.Func;
+		//console.log(Func);
+		if (_type==="func") {
+			callFunc()
+		} else {
+			DEBUG? !(_commands).length?console.warn(`\n[Warning] Функция ${_func} не имеет комманд в {commands}`):"":"";
+			result =  Func(...[_args],...[_commands])
 		}
+		
+		function callFunc(){
+			DEBUG?!(_args).length?console.warn(`\n[Warning] Функция ${_func} не имеет аргументов`):"":"";
+			
+			//console.log(_data.args);
+			getArgs();
+			
+			
+			
+			function getArgs(){
+				for (let i = 0; i < (_args).length; i++) {
+					_args[i] =  run(_args[i])
+				}
+				result = Func(...[_args])
+				//console.log(result);
+			}
+		}
+	} 
+	else {
+		DEBUG? Console.warn("Возникли некоторые проблемы в CallFunction()"):"";
 	}
+	
+	
+	
 	
 	return result;
 }
@@ -497,7 +513,7 @@ function parser(Data){
 			Command = Ext.Commands.get(Result.Text);
 			
 		if (Command??false){
-			Result.setFunc(("function ") + (Command.Func.toString().replace(/[\t\n]/g, "")));
+			//Result.setFunc(("function ") + (Command.Func.toString().replace(/[\t\n]/g, "")));
 			Result.setArgsType(Command.ArgsType)
 		}
 		
@@ -520,7 +536,7 @@ function parser(Data){
 		
 		function checkCustomBlocks(){
 			if (!Result.Func){
-				Result.Func = Result.Text;
+				//Result.Func = Result.Text;
 				Result.Type = "customBlock";
 				Result.deleteArgsType;
 			}
@@ -571,7 +587,7 @@ function parser(Data){
 				}
 
 				Result.setType("customBlockCommands");
-				Result.setFunc(Result.Text)
+				//Result.setFunc(Result.Text)
 				/*
 				TODO:(Parser, FuncCommands)
 				Сделать здесь регистрацию кастомных блоков 
@@ -582,7 +598,7 @@ function parser(Data){
 				*/
 			} else {
 				//DEBUG? console.warn(Result):"";
-				Result.setFunc(("function ") + ((Command.Func).toString().replace(/[\t\n]/g, "")))
+				//Result.setFunc(("function ") + ((Command.Func).toString().replace(/[\t\n]/g, "")))
 			}
 		}
 
@@ -597,6 +613,7 @@ function parser(Data){
 	}
 	
 }
+
 
 /*
 Функция run(_data)
@@ -657,7 +674,7 @@ function run(Data){
 		//console.log(runner)
 
 		return callFunction(
-			_func = eval(`(${Result._Func})`),
+			_func = Result._Text,
 			_args = runner.args, _commands = [], _type=Result._Type
 		);
 		
@@ -677,7 +694,7 @@ function run(Data){
 		//console.log(Commands);
 			
 		return callFunction(
-			eval(`(${Result._Func})`),
+			_func = Result._Text,
 			_args = Args, _commands = Commands, _type = Result._Type
 		)
 	}
@@ -800,9 +817,9 @@ submitButton.addEventListener('click',  function() {
 	const startTime = Date.now();
 	returnValue = 0;
 	openedBrackets = openAllBrackets(editTextElement.value);
-	console.log(openedBrackets);
+	//console.log(openedBrackets);
 	parseredBrackets = JSON.parse(JSON.stringify(parser(openedBrackets)));
-	console.log(parseredBrackets);
+	//console.log(parseredBrackets);
 	
 	//parseredBrackets =  JSON.stringify(parser(dictOpenedBrackets));
 	//console.log(JSON.parse(parseredBrackets));
@@ -817,12 +834,13 @@ startButton.addEventListener('click',  function() {
 		//console.log(_data);
 		//console.log(runned);
 	}
-	console.log(newVar);
+	//console.log(newVar);
 	const result2 = start(newVar);
 	
 	const endTime = Date.now();
 	const executionTime = endTime - startTime;
-	myFunction(`${result2 + '\nRunning Time: ' + executionTime}`);
+	console.log(`\nRunning Time: ${executionTime}ms`)
+	myFunction(`${result2}`);
 });
 
 //Вывод значения в "output"
@@ -830,6 +848,7 @@ function myFunction(text) {
     // Ваш код, использующий текст из editText
     outputElement.innerHTML = 'Program returned: ' + text;
 }
+
 
 /*Start Modules*/
 var Ext =  new Extensions(); //Инициализация дополнений
@@ -1303,7 +1322,7 @@ class baseModule{
 		/*//console.log(args);
 		//console.log (variablesDict);
 		//console.log (args[0]);*/
-		return (variablesMap.has(args[0])?1:0);
+		return (VariablesMap.has(args[0])?1:0);
 	};
 
 //opcode: 'inFunc', //Новый блок
@@ -1383,7 +1402,24 @@ class baseModule{
 Ext =  Ext.register(baseModule);
 /*End Modules*/
 
-
+editTextElement.value=`rys {
+ if (!((coins)isvar)){
+  (coins) = (0)
+  (upCost) = (10)
+  (coinsPerClick) = (1)
+  Добро пожаловать в игру! Нажмите на "Start", чтобы получить первые очки
+ } else {
+  (coins)+=(coinsPerClick)
+  if ((upCost)<=(coins)){
+   (coins) -= (upCost)
+   (coinsPerClick) += (1)
+   (upCost) = (round((upCost)*(1.5)))
+   (Вы купили улучшение! Теперь +coinsPerClick = ) join (coinsPerClick)
+  } else {
+   (Всего coins: )join((coins)join((, до следующего улучшения: )join(upCost)))
+  }
+ }
+}`
 
 </script>
 </body>
