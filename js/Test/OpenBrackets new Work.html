@@ -1,0 +1,199 @@
+<!-- 
+
+Welcome to GDB Online.
+GDB online is an online compiler and debugger tool for C, C++, Python, Java, PHP, Ruby, Perl,
+C#, OCaml, VB, Swift, Pascal, Fortran, Haskell, Objective-C, Assembly, HTML, CSS, JS, SQLite, Prolog.
+Code, Compile, Run and Debug online from anywhere in world.
+
+-->
+
+<html>
+<body>
+<textarea id="editText" rows="10" cols="50"></textarea>
+<button id="submitButton">Start</button> 
+<script>
+
+const 
+	typeBracket = {
+		"(": "arg",
+		"[": "array",
+		"{": "command"
+	},
+	debug = true;
+
+function hasNestedArray(arg) { //Проверка того, что в массиве есть массив
+    return arg instanceof Array
+}
+
+function openTypeBrackets(_text, _charOpenBracket, _charClosedBracket){
+    let 
+		bracketCount = 1, 
+		resultText = "",
+		itText = false,
+		text=_text;
+		
+	const bracketCharDict = {
+		[_charOpenBracket]: 1,
+		[_charClosedBracket]: -1
+	}
+	
+	for (;(bracketCount > 0)&&(text.length>0);){
+		let char = text[0];
+		bracketCount += bracketCharDict[char] ?? 0;
+		if (bracketCount===0) {break}
+        resultText+=char;
+		text = text.slice(1)
+	}
+	
+	if (bracketCount >= 1) {
+		debug?  console.warn(`\n[Warning] In opening the brackets of the text: "${_charOpenBracket+_text}"\nThe number of open and closed brackets does not match, ignoring char "${_charOpenBracket}"`) :"";
+		itText = true
+	}
+	
+	return {
+		text: resultText, 
+		itText: itText
+	}
+};
+
+function openCommandBracket(_text){
+	let 
+		result = [],
+		text = _text,
+		bracketsCount = 0,
+		commandText = "",
+		bracketCharDict = {
+			"{": 1,
+			"}": -1
+		};
+		
+	function pushCommand(){
+		commandText.trim().length>0?result.push(commandText):"";//проверка на пустое значение
+		commandText=""
+	}
+	
+	for (;(text.length>0);) {
+		let char = text[0];
+		
+		bracketsCount += bracketCharDict[char] ?? 0;
+
+		if ((char === "\n")&&(bracketsCount===0)){
+			pushCommand()
+		} else {
+			commandText+=char
+		}
+		text = text.slice(1)
+	}
+	
+	return result
+}
+
+function openAllBrackets(_text) {
+	let 
+		result = {
+			text: "",
+			args: [],
+			commands: [],
+			type: "" //str(str,var,float),func,funcCommands
+		},
+		text = _text;
+		
+	function argBracket(){
+		let 
+			argResult = openTypeBrackets(text,"(",")");
+		
+		if (argResult.itText){
+			result.text += "(";
+		} else {
+			text = text.slice(argResult.text.length+1);
+			result.args.push(openAllBrackets(argResult.text));
+		}
+	}
+	 
+	function commandBracket(){
+		let 
+			commandResult = openTypeBrackets(text,"{","}");
+				
+		if (commandResult.itText){
+			result.text += "{";
+		} else {
+			let commandsArray = [];
+			
+			text = text.slice(commandResult.text.length+1);
+			openCommandBracket(commandResult.text).forEach(command => commandsArray.push(openAllBrackets(command)));
+			result.commands.push(commandsArray)
+		}
+	}
+	
+	
+	
+	for (;(text.length>0);) {
+	
+		let char = text[0];
+		//debug? console.log(`text = ${text}`):"";
+		
+		switch (typeBracket[char] ?? "default") {
+		
+			case "arg":
+				text = text.slice(1);
+				argBracket();
+				break;
+				
+			case "command":
+				text = text.slice(1);
+				commandBracket();
+				break;
+				
+			case "array":
+				break;
+				
+			case "default":
+				result.text += char;
+				text = text.slice(1);
+				break;
+				
+		}
+	}
+	
+	function getType(){
+		if ((result.commands).length){
+			result.text.replace(/[\s\t\n]/g, "");
+			return "funcCommands"
+		} else if ((result.args).length){
+			result.text.replace(/[\s\t\n]/g, "");
+			delete result.commands;
+			return "func"
+		}
+		
+		delete result.args;
+		delete result.commands;
+		
+		function isNum(_str) {
+			return !isNaN(parseFloat(_str))
+		}
+		
+		if (isNum(result.text)){
+			result["value"] = parseFloat(result.text);
+			delete result.text;
+			return "float"
+		}
+		return "str"
+	}
+	
+	result.type = getType();
+	return result
+};	
+
+const submitButton = document.getElementById('submitButton');
+const editTextElement = document.querySelector('textarea');
+submitButton.addEventListener('click', function() { 
+	const startTime = Date.now();
+	//const processedText = value
+	let openedBrackets = openAllBrackets(editTextElement.value);
+	console.log(openedBrackets);
+});
+
+</script>
+</body>
+</html>
+
