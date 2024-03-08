@@ -1,3 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<title>RayScript.JS</title>
+	<style>
+		body{
+			background-color: black;
+		}
+		#canvas-container {
+		  position: absolute;
+		  top: 0;
+		  left: 0;
+		  width: 100%;
+		  height: 100%;
+		  overflow: hidden;
+		  background-color: black;
+		}
+
+		#canvas {
+		  width: 100%;
+		  height: 100%;
+		  image-rendering: pixelated;
+		  margin: 0 auto;
+		  max-width: 100vw;
+		  max-height: 100vh;
+
+		  object-fit: contain;
+		  object-position: center;
+		}
+		textarea {
+			width: 500px;
+			height: 200px;
+			font-size: 16px;
+			padding: 10px;
+		}
+	</style>
+</head>
+<body>
+<textarea id="editText" rows="10" cols="50"></textarea>
+<button id="submitButton">compile</button>
+<button id="startButton">Start</button>
+<div id="output" style="color:white"></div>
+
+
+<script>
+
 //TODO:Заменить стиль кода, сделать нормальный стиль кода
 
 const 
@@ -1334,3 +1382,10 @@ class baseModule{
 }
 Ext =  Ext.register(baseModule);
 /*End Modules*/
+
+
+
+</script>
+</body>
+</html>
+
